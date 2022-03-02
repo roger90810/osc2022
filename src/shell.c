@@ -37,11 +37,19 @@ void cmd_reboot()
 
 void cmd_info()
 {
-    unsigned int board_revision;
+    unsigned int board_revision, base_addr, size;
     get_board_revision(&board_revision);
+    uart_puts("Board Revision          : ");
     uart_putx(board_revision);
-    uart_putc('\r');
-    uart_putc('\n');
+    uart_puts("\n");
+
+    get_ARM_memory(&base_addr, &size);
+    uart_puts("ARM Memory Base Address : ");
+    uart_putx(base_addr);
+    uart_puts("\n");
+    uart_puts("ARM Memory Size         : ");
+    uart_putx(size);
+    uart_puts("\n");
 }
 
 void cmd_invalid()

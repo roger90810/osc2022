@@ -18,7 +18,25 @@ void get_board_revision(unsigned int* board_revision)
     *board_revision = mbox[5]; // it should be 0xa020d3 for rpi3 b+
 }
 
+void get_ARM_memory(unsigned int* base_addr, unsigned int* size)
+{
+    __attribute__((aligned(16))) unsigned int mbox[8]; // need to aligned.
+    mbox[0] = 4 * 8; // buffer size in bytes (4 Bytes * 7)
+    mbox[1] = REQUEST_CODE;
+    // tags begin
+    mbox[2] = GET_ARM_MEMORY; // tag identifier
+    mbox[3] = 8; // maximum of request and response value buffer's length (8 Bytes).
+    mbox[4] = TAG_REQUEST_CODE;
+    mbox[5] = 0; // value buffer for base address.
+    mbox[6] = 0; // value buffer for size.
+    // tags end
+    mbox[7] = END_TAG;
 
+    mbox_call(mbox, MBOX_CH_PROP); // message passing procedure call, you should implement it following the 6 steps provided above.
+
+    *base_addr = mbox[5];
+    *size = mbox[6];
+}
 
 
 /**

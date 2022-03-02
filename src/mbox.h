@@ -16,6 +16,7 @@
 #define MBOX_EMPTY      (0x40000000)
 
 #define GET_BOARD_REVISION  0x00010002
+#define GET_ARM_MEMORY      0x00010005
 #define REQUEST_CODE        0x00000000
 #define REQUEST_SUCCEED     0x80000000
 #define REQUEST_FAILED      0x80000001
@@ -38,4 +39,5 @@
 #define MBOX_TAG_LAST           0
 
 void get_board_revision(unsigned int *);
+void get_ARM_memory(unsigned int *, unsigned int *);
 int mbox_call(unsigned int *, const unsigned char);
