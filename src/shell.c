@@ -1,12 +1,18 @@
 #include "uart.h"
 #include "shell.h"
 #include "string.h"
+#include "mmio.h"
 
 void echo(const char c)
 {
     uart_putc(c);
     if (c == '\n')
         uart_putc('\r');
+}
+
+void clear_shell()
+{
+    uart_putc(0x0c);
 }
 
 void cmd_help()
@@ -23,7 +29,7 @@ void cmd_hello()
 
 void cmd_reboot()
 {
-    // TODO : reboot device
+    reset(1);
 }
 
 void cmd_invalid()
@@ -67,6 +73,8 @@ void exec_cmd(const char *cmd)
         cmd_hello();
     else if (strcmp(cmd, "reboot") == 0)
         cmd_reboot();
+    else if (strcmp(cmd, "clear") == 0)
+        clear_shell();
     else
         cmd_invalid();
 }
@@ -74,6 +82,7 @@ void exec_cmd(const char *cmd)
 void start_shell()
 {
     char cmd[CMD_BUF_SIZE];
+    clear_shell();
     while (1)
     {
         // super loop
