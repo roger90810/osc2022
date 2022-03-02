@@ -2,6 +2,7 @@
 #include "shell.h"
 #include "string.h"
 #include "mmio.h"
+#include "mbox.h"
 
 void echo(const char c)
 {
@@ -19,6 +20,8 @@ void cmd_help()
 {
     uart_puts("help     : print this help menu\n");
     uart_puts("hello    : print Hello World!\n");
+    uart_puts("clear    : clear the screen\n");
+    uart_puts("info     : print board information\n");
     uart_puts("reboot   : reboot the device\n");
 }
 
@@ -30,6 +33,15 @@ void cmd_hello()
 void cmd_reboot()
 {
     reset(1);
+}
+
+void cmd_info()
+{
+    unsigned int board_revision;
+    get_board_revision(&board_revision);
+    uart_putx(board_revision);
+    uart_putc('\r');
+    uart_putc('\n');
 }
 
 void cmd_invalid()
@@ -75,6 +87,8 @@ void exec_cmd(const char *cmd)
         cmd_reboot();
     else if (strcmp(cmd, "clear") == 0)
         clear_shell();
+    else if (strcmp(cmd, "info") == 0)
+        cmd_info();
     else
         cmd_invalid();
 }
