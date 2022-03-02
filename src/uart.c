@@ -38,17 +38,17 @@ void uart_putc(unsigned int c)
     *AUX_MU_IO = c;
 }
 
-char uart_getc(unsigned int c)
+char uart_getc()
 {
-    char r;
+    char c;
     /* wait until something is in the buffer */
     do {
         asm volatile("nop");
     } while (!(*AUX_MU_LSR & 0x01));
     /* read it and return */
-    r = (char)(*AUX_MU_IO);
+    c = (char)(*AUX_MU_IO);
     /* convert carrige return to newline */
-    return (r == '\r')? '\n' : r;
+    return (c == '\r')? '\n' : c;
 }
 
 /**

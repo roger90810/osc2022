@@ -6,4 +6,3 @@ int main()
     uart_puts("Hello World!\n");
     return 0;
 }
-
