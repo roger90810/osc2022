@@ -32,7 +32,7 @@ void uart_putc(unsigned int c)
     /* wait until we can send */
     do {
         asm volatile("nop");
-    } while (!(*AUX_MU_LSR & 0x20));
+    } while (!(*AUX_MU_LSR & 0x20)); // This bit is set if the transmit FIFO can accept at least R one byte.
     /* write the character to the buffer */
     *AUX_MU_IO = c;
 }
@@ -43,7 +43,7 @@ char uart_getc()
     /* wait until something is in the buffer */
     do {
         asm volatile("nop");
-    } while (!(*AUX_MU_LSR & 0x01));
+    } while (!(*AUX_MU_LSR & 0x01)); // This bit is set if the receive FIFO holds at least 1 R symbol.
     /* read it and return */
     c = (char)(*AUX_MU_IO);
     /* convert carrige return to newline */
