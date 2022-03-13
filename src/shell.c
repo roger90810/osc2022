@@ -3,12 +3,13 @@
 #include "string.h"
 #include "mmio.h"
 #include "mbox.h"
+#include "cpio.h"
 
 void echo(const char c)
 {
     uart_putc(c);
-    if (c == '\n')
-        uart_putc('\r');
+    if (c == '\r')
+        uart_putc('\n');
 }
 
 void clear_shell()
@@ -23,6 +24,7 @@ void cmd_help()
     uart_puts("clear    : clear the screen\n");
     uart_puts("info     : print board information\n");
     uart_puts("reboot   : reboot the device\n");
+    uart_puts("ls       : print all files\n");
 }
 
 void cmd_hello()
@@ -57,6 +59,11 @@ void cmd_invalid()
     uart_puts("Invalid command\n");
 }
 
+void cmd_ls()
+{
+    cpio_ls();
+}
+
 void read_cmd(char *cmd)
 {
     char c;
@@ -66,7 +73,7 @@ void read_cmd(char *cmd)
     {
         c = uart_getc();
         cmd[cur_pos] = '\0';
-        if (c == '\n')
+        if (c == '\r')
         {
             // read to end
             echo(c);
@@ -97,6 +104,8 @@ void exec_cmd(const char *cmd)
         clear_shell();
     else if (strcmp(cmd, "info") == 0)
         cmd_info();
+    else if (strcmp(cmd, "ls") == 0)
+        cmd_ls();
     else
         cmd_invalid();
 }
