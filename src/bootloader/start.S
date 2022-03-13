@@ -15,23 +15,23 @@ _start:
     ldr     x1, =0x80000
     ldr     x2, =_start
     mov     sp, x2 // set stack pointer to top
-    ldr     w3, =__code_size
+    ldr     x3, =__code_size
 relocate_loop:
     ldr     x4, [x1], #8
     str     x4, [x2], #8
-    sub     w3, w3, #1
-    cbnz    w3, relocate_loop
+    sub     x3, x3, #1
+    cbnz    x3, relocate_loop
 
     // clear bss
     ldr     x1, =__bss_start
-    ldr     w2, =__bss_size
-    cbz     w2, 4f
+    ldr     x2, =__bss_size
+    cbz     x2, 4f
 clear_bss_loop:
     str     xzr, [x1], #8
-    sub     w2, w2, #1
-    cbnz    w2, clear_bss_loop
+    sub     x2, x2, #1
+    cbnz    x2, clear_bss_loop
 
     // jump to C code, should not return
-4:  bl      boot
+4:  bl      boot-0x20000
     // for failsafe, halt this core too
     b       1b
