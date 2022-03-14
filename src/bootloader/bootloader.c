@@ -6,7 +6,7 @@ int boot()
     uart_init();
     // uart_puts("Waiting for kernel image...\n");
     
-    int kernel_size = 0;
+    unsigned int kernel_size = 0;
     for (int i = 0; i < 4; i++) {
         kernel_size <<= 8;
         kernel_size |= uart_getc();

@@ -1,5 +1,4 @@
 #include "uart.h"
-#include "gpio.h"
 
 void uart_init()
 {
@@ -26,7 +25,7 @@ void uart_init()
     *AUX_MU_CNTL = 3;      // enable Tx, Rx
 }
 
-void uart_putc(unsigned int c)
+void uart_putc(const unsigned int c)
 {
     // Send a character
     /* wait until we can send */
@@ -47,13 +46,14 @@ char uart_getc()
     /* read it and return */
     c = (char)(*AUX_MU_IO);
     /* convert carrige return to newline */
-    return (c == '\r')? '\n' : c;
+    // return (c == '\r')? '\n' : c;
+    return c;
 }
 
 /**
  * Display a string
  */
-void uart_puts(char *s)
+void uart_puts(const char *s)
 {
     while (*s) {
         /* convert newline to carrige return + newline */
@@ -63,7 +63,8 @@ void uart_puts(char *s)
     }
 }
 
-void uart_putx(unsigned int d) {
+void uart_putx(const unsigned int d)
+{
     unsigned int n;
     int c;
     for(c = 28; c >= 0; c -= 4) {
