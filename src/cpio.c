@@ -36,6 +36,7 @@ int cpio_header_parse(const cpio_newc_header_t *cpio_header, char **file_name, u
     *name_size = htoi(cpio_header->c_namesize);
     *file_name = (char *)cpio_header + sizeof(cpio_newc_header_t);
     if (strncmp(*file_name, "TRAILER!!!", 10) == 0) return 1;
+    if (strncmp(*file_name, "./", 2) == 0) *file_name += 2;
     return 0;
 }
 
@@ -59,5 +60,38 @@ void cpio_ls()
         next_header_start += t;
 
         header = (cpio_newc_header_t *)next_header_start;
+    }
+}
+
+void cpio_cat(const char *file_name)
+{
+    cpio_newc_header_t *header = (cpio_newc_header_t *)CPIO_BASE;
+    unsigned long file_size;
+    unsigned long name_size;
+    char *cpio_file_name;
+    char *next_header_start = (char *)header;
+    char t;
+    char found = 0;
+    while (cpio_header_parse(header, &cpio_file_name, &file_size, &name_size) == 0) {
+        next_header_start += (sizeof(cpio_newc_header_t) + name_size);
+        t = 0x2 - (name_size & 0x3);
+        next_header_start += t;
+
+        if (strcmp(file_name, cpio_file_name) == 0) {
+            uart_puts(next_header_start);
+            uart_puts("\n");
+            found = 1;
+            break;
+        }
+
+        next_header_start += file_size;
+        t = (0x4 - (file_size & 0x7)) & 0x3;
+        next_header_start += t;
+
+        header = (cpio_newc_header_t *)next_header_start;
+    }
+    if (!found) {
+        uart_puts(file_name);
+        uart_puts(": No such file or directory\n");
     }
 }

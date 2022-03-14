@@ -22,4 +22,5 @@ typedef struct {
 } cpio_newc_header_t;
 
 void cpio_ls();
+void cpio_cat(const char*);
 #endif
