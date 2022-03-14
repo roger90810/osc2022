@@ -4,6 +4,7 @@
 #include "mmio.h"
 #include "mbox.h"
 #include "cpio.h"
+#include "stdlib.h"
 
 void echo(const char c)
 {
@@ -70,6 +71,19 @@ void cmd_cat(const char *file_name)
     cpio_cat(file_name);
 }
 
+void cmd_malloc()
+{
+    uart_puts("Simple malloc test:\n");
+    char* string = simple_malloc(8);
+    for (int i = 0; i < 8; i++) {
+        uart_puts("Address of string[");
+        uart_putc(i + '0');
+        uart_puts("] : ");
+        uart_putx(&string[i]);
+        uart_puts("\n");
+    }
+}
+
 void read_cmd(char *cmd)
 {
     char c;
@@ -120,6 +134,8 @@ void exec_cmd(const char *cmd)
         cmd_ls();
     else if (strcmp(argv[0], "cat") == 0)
         cmd_cat(argv[1]);
+    else if (strcmp(argv[0], "malloc") == 0)
+        cmd_malloc();
     else
         cmd_invalid();
 }
