@@ -1,3 +1,8 @@
+#ifndef __UART_H
+#define __UART_H
+
+#include "gpio.h"
+#include "stdint.h"
 /* Auxilary mini UART registers */
 
 #define AUX_ENABLE      ((volatile unsigned int*)(MMIO_BASE+0x00215004))
@@ -14,7 +19,10 @@
 #define AUX_MU_BAUD     ((volatile unsigned int*)(MMIO_BASE+0x00215068))
 
 void uart_init();
-void uart_putc(unsigned int c);
+void uart_putc(const uint32_t c);
 char uart_getc();
-void uart_puts(char *s);
-void uart_putx(unsigned int);
+void uart_puts(const char *s);
+void uart_putx(const uint32_t);
+void uart_put_hb(const uint8_t c);
+
+#endif
