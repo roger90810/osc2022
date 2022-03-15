@@ -24,5 +24,5 @@ typedef struct {
     uint32_t nameoff;   // An offset into the strings block
 } fdt_prop_t;
 
-void dtb_parser(uint64_t);
+void dtb_parser(uint64_t, void (*initramfs_callback)(uint8_t*, uint32_t));
 #endif

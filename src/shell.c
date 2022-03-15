@@ -80,10 +80,10 @@ void cmd_malloc()
     }
 }
 
-void cmd_dtb()
-{
-    dtb_parser(DTB_BASE);
-}
+// void cmd_dtb()
+// {
+//     dtb_parser(DTB_BASE);
+// }
 
 void read_cmd(char *cmd)
 {
@@ -137,8 +137,8 @@ void exec_cmd(const char *cmd)
         cmd_cat(argv[1]);
     else if (strcmp(argv[0], "malloc") == 0)
         cmd_malloc();
-    else if (strcmp(argv[0], "dtb") == 0)
-        cmd_dtb();
+    // else if (strcmp(argv[0], "dtb") == 0)
+    //     cmd_dtb();
     else
         cmd_invalid();
 }
