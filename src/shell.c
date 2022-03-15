@@ -1,10 +1,6 @@
-#include "uart.h"
 #include "shell.h"
-#include "string.h"
-#include "mmio.h"
-#include "mbox.h"
-#include "cpio.h"
-#include "stdlib.h"
+
+extern uint64_t DTB_BASE;
 
 void echo(const char c)
 {
@@ -84,6 +80,11 @@ void cmd_malloc()
     }
 }
 
+// void cmd_dtb()
+// {
+//     dtb_parser(DTB_BASE);
+// }
+
 void read_cmd(char *cmd)
 {
     char c;
@@ -136,6 +137,8 @@ void exec_cmd(const char *cmd)
         cmd_cat(argv[1]);
     else if (strcmp(argv[0], "malloc") == 0)
         cmd_malloc();
+    // else if (strcmp(argv[0], "dtb") == 0)
+    //     cmd_dtb();
     else
         cmd_invalid();
 }

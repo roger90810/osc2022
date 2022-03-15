@@ -2,7 +2,7 @@
 
 void uart_init()
 {
-    register unsigned int r;
+    register uint32_t r;
     /* map UART1 to GPIO pins */
     r = *GPFSEL1;
     r &= ~((7 << 12) | (7 << 15)); // clear GPIO14, GPIO15, each GPIO pin has 3-bit
@@ -25,7 +25,7 @@ void uart_init()
     *AUX_MU_CNTL = 3;      // enable Tx, Rx
 }
 
-void uart_putc(const unsigned int c)
+void uart_putc(const uint32_t c)
 {
     // Send a character
     /* wait until we can send */
@@ -63,15 +63,27 @@ void uart_puts(const char *s)
     }
 }
 
-void uart_putx(const unsigned int d)
+void uart_putx(const uint32_t d)
 {
-    unsigned int n;
+    uint32_t n;
     int c;
-    for(c = 28; c >= 0; c -= 4) {
+    for (c = 28; c >= 0; c -= 4) {
         // get highest tetrad
         n = (d >> c) & 0xF;
         // 0-9 => '0'-'9', 10-15 => 'A'-'F'
         n += (n > 9)? 0x37 : 0x30;
         uart_putc(n);
     }
+}
+
+void uart_put_hb(const uint8_t c)
+{
+    uint8_t t;
+    t = (c >> 4) & 0xf;
+    t += (t > 9)? 0x37 : 0x30;
+    uart_putc(t);
+
+    t = c & 0xf;
+    t += (t > 9)? 0x37 : 0x30;
+    uart_putc(t);
 }

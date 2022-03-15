@@ -1,3 +1,4 @@
+#include "string.h"
 /**
  * @brief Compare two strings
  * 
@@ -37,8 +38,8 @@ int strncmp(const char *cs, const char *ct, unsigned int count)
 		c2 = *ct++;
 		if (c1 != c2)
 			return c1 < c2 ? -1 : 1;
-		if (!c1)
-			break;
+		// if (!c1)
+		// 	break;
 		count--;
 	}
 	return 0;
@@ -84,4 +85,19 @@ char *strsep(char **s, const char *ct)
         *end++ = '\0';
     *s = end;
     return sbegin;
+}
+
+/**
+ * @brief Find the length of a string
+ * 
+ * @param s The string to be sized
+ * @return uint64_t 
+ */
+uint64_t strlen(const char *s)
+{
+	const char *sc;	
+
+	for (sc = s; *sc != '\0'; ++sc)
+		/* nothing */;
+	return sc - s;
 }

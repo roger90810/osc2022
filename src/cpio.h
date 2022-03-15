@@ -3,7 +3,9 @@
 
 #include "string.h"
 #include "uart.h"
-#define CPIO_BASE         ((volatile unsigned int*)(0x20000000))
+// #define CPIO_BASE         ((volatile unsigned int*)(0x20000000))
+extern uint32_t CPIO_BASE;
+
 typedef struct {
     char c_magic[6];    // The string "070701".
     char c_ino[8];      // i-node number

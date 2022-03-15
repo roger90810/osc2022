@@ -17,10 +17,10 @@ bootloader.img: start.o $(OBJS)
 	llvm-objcopy -O binary bootloader.elf bootloader.img
 
 run:
-	qemu-system-aarch64 -M raspi3b -kernel bootloader.img -serial null -serial pty
+	qemu-system-aarch64 -M raspi3b -kernel bootloader.img -serial null -serial pty -initrd ../initramfs/initramfs.cpio -dtb ../devicetree/bcm2710-rpi-3-b-plus.dtb
 
 debug:
-	qemu-system-aarch64 -M raspi3b -kernel bootloader.img -serial null -serial pty -display none -S -s
+	qemu-system-aarch64 -M raspi3b -kernel bootloader.img -serial null -serial pty -display none -S -s ../initramfs/initramfs.cpio -dtb ../devicetree/bcm2710-rpi-3-b-plus.dtb
 
 clean:
 	rm bootloader.elf bootloader.img *.o >/dev/null 2>/dev/null || true
