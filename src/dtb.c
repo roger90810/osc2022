@@ -47,7 +47,7 @@ int dtb_fdt_prop_parse(uint8_t** curr_struct_offset, const uint8_t* string_base,
     uart_puts("\n");
 
     if (strcmp(name, "linux,initrd-start") == 0) {
-        (*initramfs_callback)(*curr_struct_offset, prop_len);
+        if (initramfs_callback) (*initramfs_callback)(*curr_struct_offset, prop_len);
     }
 
     *curr_struct_offset += ALIGN(prop_len, 4);
