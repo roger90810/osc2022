@@ -11,7 +11,7 @@ _start:
 1:  wfe
     b       1b
 2:  // cpu id == 0
-
+    bl from_el2_to_el1
     // set top of stack just before our code (stack grows to a lower address per AAPCS64)
     ldr     x1, =_start
     mov     sp, x1
@@ -23,8 +23,17 @@ _start:
     str     xzr, [x1], #8
     sub     w2, w2, #1
     cbnz    w2, 3b
+    
 
     // jump to C code, should not return
 4:  bl      main
     // for failsafe, halt this core too
     b       1b
+
+from_el2_to_el1 :
+    mov x2, (1 << 31) // EL1 uses aarch64
+    msr hcr_el2, x2
+    mov x2, 0x3c5     // EL1h (SPSel = 1) with interrupt disabled
+    msr spsr_el2, x2
+    msr elr_el2, lr
+    eret // return to EL1
