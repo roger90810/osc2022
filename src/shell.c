@@ -61,12 +61,12 @@ void cmd_invalid()
 
 void cmd_ls()
 {
-    cpio_ls();
+    cpio_traverse("", &cpio_callback_ls);
 }
 
 void cmd_cat(const char *file_name)
 {
-    cpio_cat(file_name);
+    cpio_traverse(file_name, &cpio_callback_cat);
 }
 
 void cmd_malloc()
@@ -85,6 +85,20 @@ void cmd_malloc()
 void cmd_dtb()
 {
     dtb_parser(DTB_BASE, 0);
+}
+
+void cmd_exec(const char *file_name)
+{
+    // execute user program
+
+    // load user program from cpio
+    cpio_traverse(file_name, &cpio_callback_exec);
+    volatile uint64_t tmp = 0x3c0;
+    asm volatile("msr spsr_el1, %0" :: "r"(tmp)); // set spsr_el1 to 0x3c0
+    tmp = 0x60000;
+    asm volatile("msr elr_el1, %0" :: "r"(tmp)); //set elr_el1 to 0x60000, which is the program's start address.
+    asm volatile("msr sp_el0, %0" :: "r"(tmp)); // set sp_el0 to 0x60000, which is the program's stack pointer.
+    asm volatile("eret");
 }
 
 void read_cmd(char *cmd)
@@ -141,6 +155,8 @@ void exec_cmd(const char *cmd)
         cmd_malloc();
     else if (strcmp(argv[0], "dtb") == 0)
         cmd_dtb();
+    else if (strcmp(argv[0], "exec") == 0)
+        cmd_exec(argv[1]);
     else
         cmd_invalid();
 }

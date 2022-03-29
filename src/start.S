@@ -12,6 +12,9 @@ _start:
     b       1b
 2:  // cpu id == 0
     bl from_el2_to_el1
+    // after switch to 
+    adr x1, exception_vector_table
+    msr vbar_el1, x1
     // set top of stack just before our code (stack grows to a lower address per AAPCS64)
     ldr     x1, =_start
     mov     sp, x1
@@ -37,3 +40,43 @@ from_el2_to_el1 :
     msr spsr_el2, x2
     msr elr_el2, lr
     eret // return to EL1
+
+exception_handler :
+.align 11 // vector table should be aligned to 0x800
+.global exception_vector_table
+exception_vector_table :
+    b exception_handler // branch to a handler function.
+    .align 7 // entry size is 0x80, .align will pad 0
+    b exception_handler
+    .align 7
+    b exception_handler
+    .align 7
+    b exception_handler
+    .align 7
+
+    b exception_handler
+    .align 7
+    b exception_handler
+    .align 7
+    b exception_handler
+    .align 7
+    b exception_handler
+    .align 7
+
+    b exception_handler
+    .align 7
+    b exception_handler
+    .align 7
+    b exception_handler
+    .align 7
+    b exception_handler
+    .align 7
+
+    b exception_handler
+    .align 7
+    b exception_handler
+    .align 7
+    b exception_handler
+    .align 7
+    b exception_handler
+    .align 7
