@@ -101,6 +101,25 @@ void cmd_exec(const char *file_name)
     asm volatile("eret");
 }
 
+void exception_entry()
+{
+    volatile uint64_t tmp;
+    asm volatile("mrs %0, spsr_el1" : "=r"(tmp)); 
+    uart_puts("The value of spsr_el1 : ");
+    uart_putx(tmp);
+    uart_puts("\n");
+
+    asm volatile("mrs %0, elr_el1" : "=r"(tmp)); 
+    uart_puts("The value of elr_el1 : ");
+    uart_putx(tmp);
+    uart_puts("\n");
+
+    asm volatile("mrs %0, esr_el1" : "=r"(tmp)); 
+    uart_puts("The value of esr_el1 : ");
+    uart_putx(tmp);
+    uart_puts("\n");
+}
+
 void read_cmd(char *cmd)
 {
     char c;
