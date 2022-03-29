@@ -3,6 +3,7 @@
 
 #include "string.h"
 #include "uart.h"
+#include "stdlib.h"
 // #define CPIO_BASE         ((volatile unsigned int*)(0x20000000))
 extern uint32_t CPIO_BASE;
 
@@ -23,6 +24,8 @@ typedef struct {
     char c_check[8];    // always set to zero by writers
 } cpio_newc_header_t;
 
-void cpio_ls();
-void cpio_cat(const char*);
+void cpio_traverse(const char *file_name, void (*cpio_callback)(const char*, const char*, const char *, const uint64_t));
+void cpio_callback_ls(const char *cpio_file_name, const char *content, const char *file_name, const uint64_t file_size);
+void cpio_callback_cat(const char *cpio_file_name, const char *content, const char *file_name, const uint64_t file_size);
+void cpio_callback_exec(const char *cpio_file_name, const char *content, const char *file_name, const uint64_t file_size);
 #endif

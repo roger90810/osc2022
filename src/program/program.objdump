@@ -1,0 +1,13 @@
+
+program.elf:	file format elf64-littleaarch64
+
+
+Disassembly of section .text:
+
+0000000000080000 <_start>:
+   80000: 00 00 80 d2  	mov	x0, #0
+   80004: 00 04 00 91  	add	x0, x0, #1
+   80008: 01 00 00 d4  	svc	#0
+   8000c: 1f 14 00 f1  	cmp	x0, #5
+   80010: ab ff ff 54  	b.lt	0x80004 <_start+0x4>
+   80014: 00 00 00 14  	b	0x80014 <_start+0x14>
