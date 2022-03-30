@@ -4,32 +4,32 @@ extern uint64_t DTB_BASE;
 
 void echo(const char c)
 {
-    uart_putc(c);
+    async_uart_putc(c);
     if (c == '\r')
-        uart_putc('\n');
+        async_uart_putc('\n');
 }
 
 void clear_shell()
 {
-    uart_putc(0x0c);
+    async_uart_putc(0x0c);
 }
 
 void cmd_help()
 {
-    uart_puts("help            : print this help menu\n");
-    uart_puts("hello           : print Hello World!\n");
-    uart_puts("clear           : clear the screen\n");
-    uart_puts("info            : print board information\n");
-    uart_puts("reboot          : reboot the device\n");
-    uart_puts("ls              : print all files\n");
-    uart_puts("cat [filename]  : print the content of the file\n");
-    uart_puts("malloc          : print the address of memory allocate\n");
-    uart_puts("dtb             : print the parse result of dtb\n");
+    async_uart_puts("help            : print this help menu\n");
+    async_uart_puts("hello           : print Hello World!\n");
+    async_uart_puts("clear           : clear the screen\n");
+    async_uart_puts("info            : print board information\n");
+    async_uart_puts("reboot          : reboot the device\n");
+    async_uart_puts("ls              : print all files\n");
+    async_uart_puts("cat [filename]  : print the content of the file\n");
+    async_uart_puts("malloc          : print the address of memory allocate\n");
+    async_uart_puts("dtb             : print the parse result of dtb\n");
 }
 
 void cmd_hello()
 {
-    uart_puts("Hello World!\n");
+    async_uart_puts("Hello World!\n");
 }
 
 void cmd_reboot()
@@ -116,10 +116,10 @@ void read_cmd(char *cmd)
 {
     char c;
     int cur_pos = 0;
-    uart_puts("# ");
+    async_uart_puts("# ");
     do
     {
-        c = uart_getc();
+        c = async_uart_getc();
         cmd[cur_pos] = '\0';
         if (c == '\r') {
             // read to end

@@ -3,6 +3,8 @@
 
 #include "gpio.h"
 #include "stdint.h"
+#include "exception.h"
+#include "queue.h"
 /* Auxilary mini UART registers */
 
 #define AUX_ENABLE      ((volatile unsigned int*)(MMIO_BASE+0x00215004))
@@ -17,6 +19,13 @@
 #define AUX_MU_CNTL     ((volatile unsigned int*)(MMIO_BASE+0x00215060))
 #define AUX_MU_STAT     ((volatile unsigned int*)(MMIO_BASE+0x00215064))
 #define AUX_MU_BAUD     ((volatile unsigned int*)(MMIO_BASE+0x00215068))
+
+
+#define UART_DATA_READY()  ((*AUX_MU_LSR & 0x01))
+#define UART_TRANS_EMPTY() ((*AUX_MU_LSR & 0x20))
+
+extern Queue rx_buffer;
+extern Queue tx_buffer;
 
 void uart_init();
 void uart_putc(const uint32_t c);

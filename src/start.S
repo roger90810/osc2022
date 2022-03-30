@@ -12,7 +12,7 @@ _start:
     b       1b
 2:  // cpu id == 0
     bl from_el2_to_el1
-    // after switch to 
+    // after switch to el1, set the address of exception vertor table. 
     adr x1, exception_vector_table
     msr vbar_el1, x1
     // set top of stack just before our code (stack grows to a lower address per AAPCS64)
@@ -36,7 +36,7 @@ _start:
 from_el2_to_el1 :
     mov x2, (1 << 31) // EL1 uses aarch64
     msr hcr_el2, x2
-    mov x2, 0x3c5     // EL1h (SPSel = 1) with interrupt disabled
+    mov x2, 0x345     // EL1h (SPSel = 1) with interrupt disabled
     msr spsr_el2, x2
     msr elr_el2, lr
     eret // return to EL1
