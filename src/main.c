@@ -5,6 +5,7 @@
 
 uint64_t DTB_BASE;
 uint32_t CPIO_BASE;
+uint64_t start_time;
 void initramfs_callback(uint8_t* addr, uint32_t len)
 {
     for (int i = 0; i < len; i++) {
@@ -17,6 +18,7 @@ int main()
 {
     // register uint64_t x0 asm("x0");  // clang does not support register variable??
     asm volatile("mov %0, x0" : "=r"(DTB_BASE));
+    asm volatile("mrs %0, cntpct_el0" : "=r"(start_time));
     uart_init();
     void (*ptr)(uint8_t* , uint32_t) = &initramfs_callback;
     dtb_parser(DTB_BASE, ptr);

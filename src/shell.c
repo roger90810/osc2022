@@ -93,31 +93,23 @@ void cmd_exec(const char *file_name)
 
     // load user program from cpio
     cpio_traverse(file_name, &cpio_callback_exec);
-    volatile uint64_t tmp = 0x3c0;
+    volatile uint64_t tmp = 0x340;
     asm volatile("msr spsr_el1, %0" :: "r"(tmp)); // set spsr_el1 to 0x3c0
     tmp = 0x60000;
     asm volatile("msr elr_el1, %0" :: "r"(tmp)); //set elr_el1 to 0x60000, which is the program's start address.
     asm volatile("msr sp_el0, %0" :: "r"(tmp)); // set sp_el0 to 0x60000, which is the program's stack pointer.
+
+    // enable core timer
+    tmp = 0x1;
+    asm volatile("msr cntp_ctl_el0, %0" :: "r"(tmp)); // enable timer interrupt
+    asm volatile("mrs %0, cntfrq_el0" : "=r"(tmp));
+    asm volatile("msr cntp_tval_el0, %0" :: "r"(tmp)); // set expired time
+    tmp = CORE0_TIMER_IRQ_CTRL;
+    asm volatile("mov x1, %0" :: "r"(tmp));
+    tmp = 0x2;
+    asm volatile("mov x0, %0" :: "r"(tmp));
+    asm volatile("str w0, [x1]");  // unmask timer interrupt
     asm volatile("eret");
-}
-
-void exception_entry()
-{
-    volatile uint64_t tmp;
-    asm volatile("mrs %0, spsr_el1" : "=r"(tmp)); 
-    uart_puts("The value of spsr_el1 : ");
-    uart_putx(tmp);
-    uart_puts("\n");
-
-    asm volatile("mrs %0, elr_el1" : "=r"(tmp)); 
-    uart_puts("The value of elr_el1 : ");
-    uart_putx(tmp);
-    uart_puts("\n");
-
-    asm volatile("mrs %0, esr_el1" : "=r"(tmp)); 
-    uart_puts("The value of esr_el1 : ");
-    uart_putx(tmp);
-    uart_puts("\n");
 }
 
 void read_cmd(char *cmd)
