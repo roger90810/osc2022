@@ -73,67 +73,8 @@ void cpio_callback_exec(const char *cpio_file_name, const char *content, const c
 {
     if (strcmp(cpio_file_name, file_name) != 0) return;
 
-    volatile uint8_t *base_addr = 0x60000;
+    volatile uint8_t *base_addr = 0x40000;
     for (int i = 0; i < file_size; i++) {
         base_addr[i] = content[i];
     }
 }
-
-// void cpio_cat(const char *file_name)
-// {
-//     cpio_newc_header_t *header = (cpio_newc_header_t *)CPIO_BASE;
-//     uint64_t file_size;
-//     uint64_t name_size;
-//     char *cpio_file_name;
-//     char *next_header_start = (char *)header;
-//     char t;
-//     char found = 0;
-//     while (cpio_header_parse(header, &cpio_file_name, &file_size, &name_size) == 0) {
-
-//         next_header_start += ALIGN((sizeof(cpio_newc_header_t) + name_size), 4);
-
-//         if (strcmp(file_name, cpio_file_name) == 0) {
-//             uart_puts(next_header_start);
-//             uart_puts("\n");
-//             found = 1;
-//             break;
-//         }
-//         next_header_start += ALIGN(file_size, 4);
-//         header = (cpio_newc_header_t *)next_header_start;
-//     }
-//     if (!found) {
-//         uart_puts(file_name);
-//         uart_puts(": No such file or directory\n");
-//     }
-// }
-
-// void cpio_exec(const char *file_name)
-// {
-//     cpio_newc_header_t *header = (cpio_newc_header_t *)CPIO_BASE;
-//     uint64_t file_size;
-//     uint64_t name_size;
-//     char *cpio_file_name;
-//     char *next_header_start = (char *)header;
-//     char t;
-//     char found = 0;
-//     while (cpio_header_parse(header, &cpio_file_name, &file_size, &name_size) == 0) {
-//         next_header_start += ALIGN((sizeof(cpio_newc_header_t) + name_size), 4);
-
-//         if (strcmp(file_name, cpio_file_name) == 0) {
-//             found = 1;
-//             uint64_t size = ALIGN(file_size, 4);
-//             volatile uint8_t *base_addr = 0x60000;
-//             for (int i = 0; i < size; i++) {
-//                 *base_addr = next_header_start[i];
-//                 base_addr++;
-//             }
-//             break;
-//         }
-//         next_header_start += ALIGN(file_size, 4);
-//         header = (cpio_newc_header_t *)next_header_start;
-//     }
-//     if (!found) {
-//         uart_puts(file_name);
-//         uart_puts(": No such file or directory\n");
-//     }
-// }

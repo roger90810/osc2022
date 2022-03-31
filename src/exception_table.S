@@ -41,16 +41,23 @@
     add sp, sp, 32 * 8
 .endm
 
-.align 11 // vector table should be aligned to 0x800
-.global exception_vector_table
 
-exception_handler :
+exception_handler:
     save_all
     bl  exception_entry
     load_all
     eret
 
-exception_vector_table :
+irq_exception_handler:
+    save_all
+    bl  irq_handler
+    load_all
+    eret
+    
+.align 11 // vector table should be aligned to 0x800
+.global exception_vector_table
+
+exception_vector_table:
     b exception_handler // branch to a handler function.
     .align 7 // entry size is 0x80, .align will pad 0
     b exception_handler
@@ -62,7 +69,7 @@ exception_vector_table :
 
     b exception_handler
     .align 7
-    b exception_handler
+    b irq_exception_handler
     .align 7
     b exception_handler
     .align 7
@@ -71,7 +78,7 @@ exception_vector_table :
 
     b exception_handler
     .align 7
-    b exception_handler
+    b irq_exception_handler   // IRQ user programs (EL0 -> EL1)
     .align 7
     b exception_handler
     .align 7

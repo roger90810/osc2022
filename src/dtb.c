@@ -12,8 +12,8 @@ int dtb_fdt_begin_parse(uint8_t** curr_struct_offset)
     if (strncmp(*curr_struct_offset, "\0\0\0\x01", 4) != 0) return -1; // is not FDT_begin token
     *curr_struct_offset += 4;
 
-    uart_puts(*curr_struct_offset);
-    uart_puts("\n");
+    // uart_puts(*curr_struct_offset);
+    // uart_puts("\n");
 
     uint32_t name_len;
     name_len = strlen(*curr_struct_offset) + 1;
@@ -35,16 +35,16 @@ int dtb_fdt_prop_parse(uint8_t** curr_struct_offset, const uint8_t* string_base,
     *curr_struct_offset += sizeof(fdt_prop_t);
     uint8_t *name = string_base + nameoff;
     // print prop and string
-    uart_puts("  - ");
-    uart_puts(name);
-    uart_puts(" : ");
+    // uart_puts("  - ");
+    // uart_puts(name);
+    // uart_puts(" : ");
 
-    for (int i = 0; i < prop_len; i++) {
-        if ((*curr_struct_offset)[i] == '\0') uart_putc(' ');
-        else if (IS_PRINTABLE((*curr_struct_offset)[i])) uart_putc((*curr_struct_offset)[i]);
-        else uart_put_hb((*curr_struct_offset)[i]);
-    }
-    uart_puts("\n");
+    // for (int i = 0; i < prop_len; i++) {
+    //     if ((*curr_struct_offset)[i] == '\0') uart_putc(' ');
+    //     else if (IS_PRINTABLE((*curr_struct_offset)[i])) uart_putc((*curr_struct_offset)[i]);
+    //     else uart_put_hb((*curr_struct_offset)[i]);
+    // }
+    // uart_puts("\n");
 
     if (strcmp(name, "linux,initrd-start") == 0) {
         if (initramfs_callback) (*initramfs_callback)(*curr_struct_offset, prop_len);
@@ -65,10 +65,9 @@ void dtb_parser(uint64_t DTB_BASE, void (*initramfs_callback)(uint8_t*, uint32_t
     byte_reverse(&off_dt_strings);    
     uint8_t *curr_struct_offset = (uint8_t *)header + off_dt_struct; // to the begin of struct block
     uint8_t *string_base = (uint8_t *)header + off_dt_strings; // to the begin of string block
-    uart_puts(curr_struct_offset);
     while (dtb_fdt_begin_parse(&curr_struct_offset) == 0) {
         while (dtb_fdt_prop_parse(&curr_struct_offset, string_base, initramfs_callback) == 0) ;
         while (strncmp(curr_struct_offset, "\0\0\0\x02", 4) == 0) curr_struct_offset += 4;
-        uart_puts("\n");
+        // uart_puts("\n");
     }
 }

@@ -1,5 +1,8 @@
 #include "uart.h"
 
+Queue rx_buffer;
+Queue tx_buffer;
+
 void uart_init()
 {
     register uint32_t r;
@@ -25,13 +28,48 @@ void uart_init()
     *AUX_MU_CNTL = 3;      // enable Tx, Rx
 }
 
+void async_uart_init()
+{
+    rx_buffer.front = -1;
+    rx_buffer.rear = -1;
+    tx_buffer.front = -1;
+    tx_buffer.rear = -1;
+    *AUX_MU_IER = 1;       // only enable receive interrupts (bit 0), transmit interrupt (bit 1) should enable when need.
+    *(uint32_t*)IRQ_ENABLE_IRQS_1 |= (1 << IRQ_AUX_INTERRUPT_BIT);
+}
+
+void async_uart_putc(const char c)
+{
+    push(&tx_buffer, c);
+    *AUX_MU_IER |= 0x2;
+}
+
+void async_uart_puts(const char *s)
+{
+    while (*s) {
+        if (*s == '\n') async_uart_putc('\r');
+        async_uart_putc(*s++);
+    }
+}
+
+char async_uart_getc()
+{
+    do {
+        asm volatile("nop");
+    } while (rx_buffer.front == rx_buffer.rear);
+
+    char c = front(&rx_buffer);
+    pop(&rx_buffer);
+    return c;
+}
+
 void uart_putc(const uint32_t c)
 {
     // Send a character
     /* wait until we can send */
     do {
         asm volatile("nop");
-    } while (!(*AUX_MU_LSR & 0x20)); // This bit is set if the transmit FIFO can accept at least R one byte.
+    } while (!UART_TRANS_EMPTY()); // This bit is set if the transmit FIFO can accept at least R one byte.
     /* write the character to the buffer */
     *AUX_MU_IO = c;
 }
@@ -42,11 +80,9 @@ char uart_getc()
     /* wait until something is in the buffer */
     do {
         asm volatile("nop");
-    } while (!(*AUX_MU_LSR & 0x01)); // This bit is set if the receive FIFO holds at least 1 R symbol.
+    } while (!UART_DATA_READY()); // This bit is set if the receive FIFO holds at least 1 symbol.
     /* read it and return */
     c = (char)(*AUX_MU_IO);
-    /* convert carrige return to newline */
-    // return (c == '\r')? '\n' : c;
     return c;
 }
 

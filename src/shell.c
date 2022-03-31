@@ -4,32 +4,32 @@ extern uint64_t DTB_BASE;
 
 void echo(const char c)
 {
-    uart_putc(c);
+    async_uart_putc(c);
     if (c == '\r')
-        uart_putc('\n');
+        async_uart_putc('\n');
 }
 
 void clear_shell()
 {
-    uart_putc(0x0c);
+    async_uart_putc(0x0c);
 }
 
 void cmd_help()
 {
-    uart_puts("help            : print this help menu\n");
-    uart_puts("hello           : print Hello World!\n");
-    uart_puts("clear           : clear the screen\n");
-    uart_puts("info            : print board information\n");
-    uart_puts("reboot          : reboot the device\n");
-    uart_puts("ls              : print all files\n");
-    uart_puts("cat [filename]  : print the content of the file\n");
-    uart_puts("malloc          : print the address of memory allocate\n");
-    uart_puts("dtb             : print the parse result of dtb\n");
+    async_uart_puts("help            : print this help menu\n");
+    async_uart_puts("hello           : print Hello World!\n");
+    async_uart_puts("clear           : clear the screen\n");
+    async_uart_puts("info            : print board information\n");
+    async_uart_puts("reboot          : reboot the device\n");
+    async_uart_puts("ls              : print all files\n");
+    async_uart_puts("cat [filename]  : print the content of the file\n");
+    async_uart_puts("malloc          : print the address of memory allocate\n");
+    async_uart_puts("dtb             : print the parse result of dtb\n");
 }
 
 void cmd_hello()
 {
-    uart_puts("Hello World!\n");
+    async_uart_puts("Hello World!\n");
 }
 
 void cmd_reboot()
@@ -93,41 +93,33 @@ void cmd_exec(const char *file_name)
 
     // load user program from cpio
     cpio_traverse(file_name, &cpio_callback_exec);
-    volatile uint64_t tmp = 0x3c0;
-    asm volatile("msr spsr_el1, %0" :: "r"(tmp)); // set spsr_el1 to 0x3c0
-    tmp = 0x60000;
-    asm volatile("msr elr_el1, %0" :: "r"(tmp)); //set elr_el1 to 0x60000, which is the program's start address.
-    asm volatile("msr sp_el0, %0" :: "r"(tmp)); // set sp_el0 to 0x60000, which is the program's stack pointer.
+    volatile uint64_t tmp = 0x340;
+    asm volatile("msr spsr_el1, %0" :: "r"(tmp)); // set spsr_el1 to 0x340
+    tmp = 0x40000;
+    asm volatile("msr elr_el1, %0" :: "r"(tmp)); // set elr_el1 to 0x40000, which is the program's start address.
+    asm volatile("msr sp_el0, %0" :: "r"(tmp)); // set sp_el0 to 0x40000, which is the program's stack pointer.
+
+    // enable core timer
+    tmp = 0x1;
+    asm volatile("msr cntp_ctl_el0, %0" :: "r"(tmp)); // enable timer interrupt
+    asm volatile("mrs %0, cntfrq_el0" : "=r"(tmp));
+    asm volatile("msr cntp_tval_el0, %0" :: "r"(tmp)); // set expired time
+    tmp = CORE0_TIMER_IRQ_CTRL;
+    asm volatile("mov x1, %0" :: "r"(tmp));
+    tmp = 0x2;
+    asm volatile("mov x0, %0" :: "r"(tmp));
+    asm volatile("str w0, [x1]");  // unmask timer interrupt
     asm volatile("eret");
-}
-
-void exception_entry()
-{
-    volatile uint64_t tmp;
-    asm volatile("mrs %0, spsr_el1" : "=r"(tmp)); 
-    uart_puts("The value of spsr_el1 : ");
-    uart_putx(tmp);
-    uart_puts("\n");
-
-    asm volatile("mrs %0, elr_el1" : "=r"(tmp)); 
-    uart_puts("The value of elr_el1 : ");
-    uart_putx(tmp);
-    uart_puts("\n");
-
-    asm volatile("mrs %0, esr_el1" : "=r"(tmp)); 
-    uart_puts("The value of esr_el1 : ");
-    uart_putx(tmp);
-    uart_puts("\n");
 }
 
 void read_cmd(char *cmd)
 {
     char c;
     int cur_pos = 0;
-    uart_puts("# ");
+    async_uart_puts("# ");
     do
     {
-        c = uart_getc();
+        c = async_uart_getc();
         cmd[cur_pos] = '\0';
         if (c == '\r') {
             // read to end
@@ -183,6 +175,7 @@ void exec_cmd(const char *cmd)
 void start_shell()
 {
     char cmd[CMD_BUF_SIZE];
+    async_uart_init();
     clear_shell();
     while (1)
     {

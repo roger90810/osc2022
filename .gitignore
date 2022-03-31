@@ -57,3 +57,4 @@ dkms.conf
 workspace.code-workspace
 *.txt
 *.cpio
+*.objdump
