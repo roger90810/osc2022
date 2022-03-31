@@ -1,5 +1,4 @@
 #include "exception.h"
-extern uint64_t start_time;
 
 
 void exception_entry()
@@ -29,7 +28,7 @@ void timer_irq_handler()
     asm volatile("mrs %0, cntfrq_el0" : "=r"(freq));
 
     uart_puts("Seconds after booting : ");
-    uart_putx((curr_time - start_time) / freq);
+    uart_putx(curr_time / freq);
     uart_puts("\n");
 
     freq <<= 1;

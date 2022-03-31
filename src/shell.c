@@ -104,7 +104,7 @@ void cmd_exec(const char *file_name)
     asm volatile("msr cntp_ctl_el0, %0" :: "r"(tmp)); // enable timer interrupt
     asm volatile("mrs %0, cntfrq_el0" : "=r"(tmp));
     asm volatile("msr cntp_tval_el0, %0" :: "r"(tmp)); // set expired time
-    tmp = CORE0_TIMER_IRQ_CTRL;
+    tmp = CORE0_TIMER_IRQCNTL;
     asm volatile("mov x1, %0" :: "r"(tmp));
     tmp = 0x2;
     asm volatile("mov x0, %0" :: "r"(tmp));

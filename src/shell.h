@@ -8,10 +8,10 @@
 #include "cpio.h"
 #include "stdlib.h"
 #include "dtb.h"
+#include "exception.h"
 
 #define CMD_BUF_SIZE 32
 #define MAX_ARG_SIZE 4
-#define CORE0_TIMER_IRQ_CTRL 0x40000040
 void start_shell();
 
 #endif
