@@ -29,7 +29,7 @@ unsigned long htoi(const char *hex_str)
  * @param name_size 
  * @return int
  */
-int cpio_header_parse(const cpio_newc_header_t *cpio_header, char **file_name, unsigned long *file_size, unsigned long *name_size)
+int cpio_header_parse(const cpio_newc_header_t *cpio_header, char **file_name, uint64_t *file_size, uint64_t *name_size)
 {
     if (strncmp(cpio_header->c_magic, "070701", 6) != 0) return -1;
     *file_size = htoi(cpio_header->c_filesize);
@@ -40,58 +40,41 @@ int cpio_header_parse(const cpio_newc_header_t *cpio_header, char **file_name, u
     return 0;
 }
 
-void cpio_ls()
+void cpio_traverse(const char *file_name, void (*cpio_callback)(const char*, const char*, const char *, const uint64_t))
 {
     cpio_newc_header_t *header = (cpio_newc_header_t *)CPIO_BASE;
-    unsigned long file_size;
-    unsigned long name_size;
-    char *file_name;
+    uint64_t file_size;
+    uint64_t name_size;
+    char *cpio_file_name;
     char *next_header_start = (char *)header;
-    char t;
-    while (cpio_header_parse(header, &file_name, &file_size, &name_size) == 0) {
-        uart_puts(file_name);
-        uart_puts("\n");
-        next_header_start += (sizeof(cpio_newc_header_t) + name_size);
-        t = 0x2 - (name_size & 0x3);
-        next_header_start += t;
-
+    while (cpio_header_parse(header, &cpio_file_name, &file_size, &name_size) == 0) {
+        file_size = ALIGN(file_size, 4);
+        next_header_start += ALIGN((sizeof(cpio_newc_header_t) + name_size), 4);
+        cpio_callback(cpio_file_name, next_header_start, file_name, file_size);
         next_header_start += file_size;
-        t = (0x4 - (file_size & 0x7)) & 0x3;
-        next_header_start += t;
-
         header = (cpio_newc_header_t *)next_header_start;
     }
 }
 
-void cpio_cat(const char *file_name)
+void cpio_callback_ls(const char *cpio_file_name, const char *content, const char *file_name, const uint64_t file_size)
 {
-    cpio_newc_header_t *header = (cpio_newc_header_t *)CPIO_BASE;
-    unsigned long file_size;
-    unsigned long name_size;
-    char *cpio_file_name;
-    char *next_header_start = (char *)header;
-    char t;
-    char found = 0;
-    while (cpio_header_parse(header, &cpio_file_name, &file_size, &name_size) == 0) {
-        next_header_start += (sizeof(cpio_newc_header_t) + name_size);
-        t = 0x2 - (name_size & 0x3);
-        next_header_start += t;
+    uart_puts(cpio_file_name);
+    uart_puts("\n");
+}
 
-        if (strcmp(file_name, cpio_file_name) == 0) {
-            uart_puts(next_header_start);
-            uart_puts("\n");
-            found = 1;
-            break;
-        }
+void cpio_callback_cat(const char *cpio_file_name, const char *content, const char *file_name, const uint64_t file_size)
+{
+    if (strcmp(cpio_file_name, file_name) != 0) return;
+    uart_puts(content);
+    uart_puts("\n");
+}
 
-        next_header_start += file_size;
-        t = (0x4 - (file_size & 0x7)) & 0x3;
-        next_header_start += t;
+void cpio_callback_exec(const char *cpio_file_name, const char *content, const char *file_name, const uint64_t file_size)
+{
+    if (strcmp(cpio_file_name, file_name) != 0) return;
 
-        header = (cpio_newc_header_t *)next_header_start;
-    }
-    if (!found) {
-        uart_puts(file_name);
-        uart_puts(": No such file or directory\n");
+    volatile uint8_t *base_addr = 0x40000;
+    for (int i = 0; i < file_size; i++) {
+        base_addr[i] = content[i];
     }
 }

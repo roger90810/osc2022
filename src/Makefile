@@ -27,17 +27,23 @@ SRCS = $(wildcard *.c)
 OBJS = $(SRCS:.c=.o)
 CFLAGS = -Wall -O2 -ffreestanding -nostdinc -nostdlib -mcpu=cortex-a53+nosimd
 
-all: clean kernel8.img
+all: clean kernel8.img kernel8.objdump
 
 start.o: start.S
-	clang --target=aarch64-elf $(CFLAGS) -c start.S -o start.o
+	clang --target=aarch64-elf $(CFLAGS) -c $< -o $@
+
+exception_table.o: exception_table.S
+	clang --target=aarch64-elf $(CFLAGS) -c $< -o $@
 
 %.o: %.c
 	clang --target=aarch64-elf $(CFLAGS) -c $< -o $@
 
-kernel8.img: start.o $(OBJS)
-	ld.lld -m aarch64elf -nostdlib start.o $(OBJS) -T link.ld -o kernel8.elf
+kernel8.img: start.o exception_table.o $(OBJS)
+	ld.lld -m aarch64elf -nostdlib start.o exception_table.o $(OBJS) -T link.ld -o kernel8.elf
 	llvm-objcopy -O binary kernel8.elf kernel8.img
+
+kernel8.objdump: kernel8.elf
+	objdump -d kernel8.elf > kernel8.objdump
 
 clean:
 	rm kernel8.elf *.o >/dev/null 2>/dev/null || true
