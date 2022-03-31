@@ -5,10 +5,6 @@ Queue tx_buffer;
 
 void uart_init()
 {
-    rx_buffer.front = -1;
-    rx_buffer.rear = -1;
-    tx_buffer.front = -1;
-    tx_buffer.rear = -1;
     register uint32_t r;
     /* map UART1 to GPIO pins */
     r = *GPFSEL1;
@@ -26,10 +22,19 @@ void uart_init()
     *AUX_MU_CNTL = 0;      // disable transmitter and receiver
     *AUX_MU_LCR = 3;       // set the data size to 8 bits
     *AUX_MU_MCR = 0;       // don't need auto flow control
-    *AUX_MU_IER = 1;       // only enable receive interrupts (bit 0), transmit interrupt (bit 1) should enable when need.
+    *AUX_MU_IER = 0;       // disable interrupt
     *AUX_MU_IIR = 0xc6;    // no FIFO
     *AUX_MU_BAUD = 270;    // set baud rate to 115200
     *AUX_MU_CNTL = 3;      // enable Tx, Rx
+}
+
+void async_uart_init()
+{
+    rx_buffer.front = -1;
+    rx_buffer.rear = -1;
+    tx_buffer.front = -1;
+    tx_buffer.rear = -1;
+    *AUX_MU_IER = 1;       // only enable receive interrupts (bit 0), transmit interrupt (bit 1) should enable when need.
     *(uint32_t*)IRQ_ENABLE_IRQS_1 |= (1 << IRQ_AUX_INTERRUPT_BIT);
 }
 

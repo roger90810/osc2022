@@ -64,7 +64,6 @@ void uart_irq_handler()
 
 void irq_handler()
 {
-    // volatile uint32_t irq_basic_pending = *(uint32_t *)IRQ_IRQ_BASIC_PENDING;
     volatile uint32_t irq_pending_1 = *(uint32_t *)IRQ_IRQ_PENDING_1;
     volatile uint32_t core0_irq_source = *(uint32_t *)CORE0_IRQ_SOURCE;
     if (irq_pending_1 & (1 << IRQ_AUX_INTERRUPT_BIT)) {

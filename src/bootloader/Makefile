@@ -1,5 +1,5 @@
 CFLAGS = -Wall -O2 -ffreestanding -nostdinc -nostdlib -mcpu=cortex-a53+nosimd
-OBJS = bootloader.o uart.o
+OBJS = bootloader.o uart.o queue.o
 INCLUDES = -I ../uart.h ../gpio.h
 all: clean bootloader.img
 
@@ -8,6 +8,9 @@ start.o: start.S
 
 uart.o: ../uart.c
 	clang --target=aarch64-elf $(CFLAGS) -I ../uart.h -c ../uart.c -o uart.o
+
+queue.o: ../queue.c
+	clang --target=aarch64-elf $(CFLAGS) -I ../queue.h -c ../queue.c -o queue.o
 
 bootloader.o: bootloader.c
 	clang --target=aarch64-elf $(CFLAGS) -c bootloader.c -o bootloader.o

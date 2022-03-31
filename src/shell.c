@@ -94,10 +94,10 @@ void cmd_exec(const char *file_name)
     // load user program from cpio
     cpio_traverse(file_name, &cpio_callback_exec);
     volatile uint64_t tmp = 0x340;
-    asm volatile("msr spsr_el1, %0" :: "r"(tmp)); // set spsr_el1 to 0x3c0
-    tmp = 0x60000;
-    asm volatile("msr elr_el1, %0" :: "r"(tmp)); //set elr_el1 to 0x60000, which is the program's start address.
-    asm volatile("msr sp_el0, %0" :: "r"(tmp)); // set sp_el0 to 0x60000, which is the program's stack pointer.
+    asm volatile("msr spsr_el1, %0" :: "r"(tmp)); // set spsr_el1 to 0x340
+    tmp = 0x40000;
+    asm volatile("msr elr_el1, %0" :: "r"(tmp)); // set elr_el1 to 0x40000, which is the program's start address.
+    asm volatile("msr sp_el0, %0" :: "r"(tmp)); // set sp_el0 to 0x40000, which is the program's stack pointer.
 
     // enable core timer
     tmp = 0x1;
@@ -175,6 +175,7 @@ void exec_cmd(const char *cmd)
 void start_shell()
 {
     char cmd[CMD_BUF_SIZE];
+    async_uart_init();
     clear_shell();
     while (1)
     {
