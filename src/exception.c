@@ -1,5 +1,29 @@
 #include "exception.h"
 
+void enable_timer_interrupt(const uint8_t enable)
+{
+    if (enable) {
+        // enable timer irq
+        // enable core timer
+        volatile uint64_t tmp = 0x1;
+        asm volatile("msr cntp_ctl_el0, %0" :: "r"(tmp)); // enable timer interrupt
+        tmp = CORE0_TIMER_IRQCNTL;
+        asm volatile("mov x1, %0" :: "r"(tmp));
+        tmp = 0x2;
+        asm volatile("mov x0, %0" :: "r"(tmp));
+        asm volatile("str w0, [x1]");  // unmask timer interrupt
+    } else {
+        // disable timer irq
+        // disable core timer
+        volatile uint64_t tmp = 0x0;
+        asm volatile("msr cntp_ctl_el0, %0" :: "r"(tmp)); // disable timer interrupt
+        tmp = CORE0_TIMER_IRQCNTL;
+        asm volatile("mov x1, %0" :: "r"(tmp));
+        tmp = 0x0;
+        asm volatile("mov x0, %0" :: "r"(tmp));
+        asm volatile("str w0, [x1]");  // unmask timer interrupt
+    }
+}
 
 void exception_entry()
 {
@@ -22,17 +46,28 @@ void exception_entry()
 
 void timer_irq_handler()
 {
-    volatile uint64_t curr_time;
-    volatile uint64_t freq;
-    asm volatile("mrs %0, cntpct_el0" : "=r"(curr_time));
-    asm volatile("mrs %0, cntfrq_el0" : "=r"(freq));
+    timer_list->callback(timer_list->msg);
+    timer_list = timer_list->next;  // move head to next
+    uint64_t curr_time = time();
+    if (timer_list) {
+        // still has other tasks
+        set_timeout(timer_list->expired_time - curr_time);
+    } else {
+        // no other tasks, disable timer interrupt
+        enable_timer_interrupt(0);
+    }
 
-    uart_puts("Seconds after booting : ");
-    uart_putx(curr_time / freq);
-    uart_puts("\n");
+    // volatile uint64_t curr_time;
+    // volatile uint64_t freq;
+    // asm volatile("mrs %0, cntpct_el0" : "=r"(curr_time));
+    // asm volatile("mrs %0, cntfrq_el0" : "=r"(freq));
 
-    freq <<= 1;
-    asm volatile("msr cntp_tval_el0, %0" :: "r"(freq));
+    // uart_puts("Seconds after booting : ");
+    // uart_putx(curr_time / freq);
+    // uart_puts("\n");
+
+    // freq <<= 1;
+    // asm volatile("msr cntp_tval_el0, %0" :: "r"(freq));
 }
 
 void uart_irq_handler()

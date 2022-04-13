@@ -101,3 +101,34 @@ uint64_t strlen(const char *s)
 		/* nothing */;
 	return sc - s;
 }
+
+uint32_t atou(const char *s)
+{
+	uint32_t i = 0;
+	while (IS_DIGIT(*s))
+		i = i * 10 + (*s++ - '0');
+	return i;
+}
+
+/**
+ * @brief Copy a length-limited, C-string
+ * The result is not %NUL-terminated if the source exceeds count bytes.
+ * In the case where the length of src is less than  that  of
+ * count, the remainder of dest will be padded with %NUL.
+ * 
+ * @param dest Where to copy the string to
+ * @param src Where to copy the string from
+ * @param count The maximum number of bytes to copy
+ * @return char*
+ */
+char *strncpy(char *dest, const char *src, uint32_t count)
+{
+	char *tmp = dest;
+	while (count) {
+		if ((*tmp = *src) != 0)
+			src++;
+		tmp++;
+		count--;
+	}
+	return dest;
+}
