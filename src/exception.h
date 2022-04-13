@@ -2,6 +2,7 @@
 #define __EXCEPTION_H
 #include "stdint.h"
 #include "uart.h"
+#include "timer.h"
 
 // Timers interrupt control registers
 #define CORE0_TIMER_IRQCNTL 0x40000040 
@@ -111,5 +112,7 @@
 #define IRQ_AUX_INTERRUPT_BIT           29
 #define IRQ_UART_INTERRUPT_BIT          57
 #define IRQ_PEND_UART_INTERRUPT_BIT     19
+
+void enable_timer_interrupt(const uint8_t enable);
 
 #endif
