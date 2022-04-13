@@ -25,25 +25,34 @@
 
 SRCS = $(wildcard *.c)
 OBJS = $(SRCS:.c=.o)
-CFLAGS = -Wall -O2 -ffreestanding -nostdinc -nostdlib -mcpu=cortex-a53+nosimd
+CFLAGS = -Wall -O3 -ffreestanding -nostdinc -nostdlib -nostartfiles
+# CFLAGS = -Wall -O3 -ffreestanding -nostdinc -nostdlib -mcpu=cortex-a53+nosimd
+CC = aarch64-linux-gnu-gcc
+# CC = clang --target=aarch64-elf
+LD = aarch64-linux-gnu-ld
+# LD = ld.lld -m aarch64elf
+OBJCOPY = aarch64-linux-gnu-objcopy
+# OBJCOPY = llvm-objcopy
+OBJDUMP = aarch64-linux-gnu-objdump
+# OBJDUMP = llvm-objdump
 
 all: clean kernel8.img kernel8.objdump
 
 start.o: start.S
-	clang --target=aarch64-elf $(CFLAGS) -c $< -o $@
+	$(CC) $(CFLAGS) -c $< -o $@
 
 exception_table.o: exception_table.S
-	clang --target=aarch64-elf $(CFLAGS) -c $< -o $@
+	$(CC) $(CFLAGS) -c $< -o $@
 
 %.o: %.c
-	clang --target=aarch64-elf $(CFLAGS) -c $< -o $@
+	$(CC) $(CFLAGS) -c $< -o $@
 
 kernel8.img: start.o exception_table.o $(OBJS)
-	ld.lld -m aarch64elf -nostdlib start.o exception_table.o $(OBJS) -T link.ld -o kernel8.elf
-	llvm-objcopy -O binary kernel8.elf kernel8.img
+	$(LD) -nostdlib start.o exception_table.o $(OBJS) -T link.ld -o kernel8.elf
+	$(OBJCOPY) -O binary kernel8.elf kernel8.img
 
 kernel8.objdump: kernel8.elf
-	objdump -d kernel8.elf > kernel8.objdump
+	$(OBJDUMP) -d kernel8.elf > kernel8.objdump
 
 clean:
 	rm kernel8.elf *.o >/dev/null 2>/dev/null || true
