@@ -99,16 +99,16 @@ void cmd_exec(const char *file_name)
     asm volatile("msr elr_el1, %0" :: "r"(tmp)); // set elr_el1 to 0x40000, which is the program's start address.
     asm volatile("msr sp_el0, %0" :: "r"(tmp)); // set sp_el0 to 0x40000, which is the program's stack pointer.
 
-    // enable core timer
-    tmp = 0x1;
-    asm volatile("msr cntp_ctl_el0, %0" :: "r"(tmp)); // enable timer interrupt
-    asm volatile("mrs %0, cntfrq_el0" : "=r"(tmp));
-    asm volatile("msr cntp_tval_el0, %0" :: "r"(tmp)); // set expired time
-    tmp = CORE0_TIMER_IRQCNTL;
-    asm volatile("mov x1, %0" :: "r"(tmp));
-    tmp = 0x2;
-    asm volatile("mov x0, %0" :: "r"(tmp));
-    asm volatile("str w0, [x1]");  // unmask timer interrupt
+    // // enable core timer
+    // tmp = 0x1;
+    // asm volatile("msr cntp_ctl_el0, %0" :: "r"(tmp)); // enable timer interrupt
+    // asm volatile("mrs %0, cntfrq_el0" : "=r"(tmp));
+    // asm volatile("msr cntp_tval_el0, %0" :: "r"(tmp)); // set expired time
+    // tmp = CORE0_TIMER_IRQCNTL;
+    // asm volatile("mov x1, %0" :: "r"(tmp));
+    // tmp = 0x2;
+    // asm volatile("mov x0, %0" :: "r"(tmp));
+    // asm volatile("str w0, [x1]");  // unmask timer interrupt
     asm volatile("eret");
 }
 
@@ -133,6 +133,16 @@ void read_cmd(char *cmd)
             cmd[cur_pos] = '\0';
         }
     } while (1);
+}
+
+void cmd_set_timeout(const char* msg, const char* sec_s)
+{
+    uint32_t sec = atou(sec_s);
+
+    char* data = simple_malloc(strlen(msg) + 1);
+    strncpy(data, msg, strlen(msg));
+    add_timer(uart_puts, data, sec);
+    return;
 }
 
 void exec_cmd(const char *cmd)
@@ -168,6 +178,8 @@ void exec_cmd(const char *cmd)
         cmd_dtb();
     else if (strcmp(argv[0], "exec") == 0)
         cmd_exec(argv[1]);
+    else if (strcmp(argv[0], "set_timeout") == 0)
+        cmd_set_timeout(argv[1], argv[2]);
     else
         cmd_invalid();
 }
