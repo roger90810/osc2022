@@ -25,8 +25,8 @@
 
 SRCS = $(wildcard *.c)
 OBJS = $(SRCS:.c=.o)
-CFLAGS = -Wall -O3 -ffreestanding -nostdinc -nostdlib -nostartfiles
-# CFLAGS = -Wall -O3 -ffreestanding -nostdinc -nostdlib -mcpu=cortex-a53+nosimd
+CFLAGS = -Wall -O2 -ffreestanding -nostdinc -nostdlib -nostartfiles
+# CFLAGS = -Wall -O2 -ffreestanding -nostdinc -nostdlib -mcpu=cortex-a53+nosimd
 CC = aarch64-linux-gnu-gcc
 # CC = clang --target=aarch64-elf
 LD = aarch64-linux-gnu-ld
