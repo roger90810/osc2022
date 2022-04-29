@@ -2,6 +2,7 @@
 #include "shell.h"
 #include "stdint.h"
 #include "dtb.h"
+#include "mm.h"
 
 uint64_t DTB_BASE;
 uint32_t CPIO_BASE;
@@ -20,6 +21,7 @@ int main()
     uart_init();
     void (*ptr)(uint8_t* , uint32_t) = &initramfs_callback;
     dtb_parser(DTB_BASE, ptr);
+    mm_init();
     start_shell();
     return 0;
 }
