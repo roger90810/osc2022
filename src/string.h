@@ -12,4 +12,5 @@ char *strpbrk(const char *, const char *);
 char *strsep(char **, const char *);
 uint32_t atou(const char *s);
 char *strncpy(char *dest, const char *src, uint32_t count);
+void *memset(void *s, int c, unsigned long count);
 #endif
