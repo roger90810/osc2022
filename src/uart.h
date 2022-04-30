@@ -2,7 +2,7 @@
 #define __UART_H
 
 #include "gpio.h"
-#include "stdint.h"
+#include "types.h"
 #include "exception.h"
 #include "queue.h"
 /* Auxilary mini UART registers */

@@ -1,6 +1,6 @@
 #ifndef __EXCEPTION_H
 #define __EXCEPTION_H
-#include "stdint.h"
+#include "types.h"
 #include "uart.h"
 #include "timer.h"
 

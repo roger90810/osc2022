@@ -1,6 +1,6 @@
 #ifndef __TIMER_H
 #define __TIMER_H
-#include "stdint.h"
+#include "types.h"
 #include "stdlib.h"
 #include "string.h"
 
