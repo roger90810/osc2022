@@ -205,9 +205,83 @@ void mem_init()
     }
 }
 
+static inline struct page *get_page_from_free_area(struct free_area *area)
+{
+    struct list_head *head = &area->free_list;
+	if (head->next == head) {
+        // list is empty
+        return NULL;
+    } else {
+        return (struct page *)(head->next);
+    }
+}
+
+/*
+ * The order of subdivision here is critical for the IO subsystem.
+ * Please do not alter this order without good reasons and regression
+ * testing. Specifically, as large blocks of memory are subdivided,
+ * the order in which smaller blocks are delivered depends on the order
+ * they're subdivided in this function. This is the primary factor
+ * influencing the order in which pages are delivered to the IO
+ * subsystem according to empirical testing, and this is also justified
+ * by considering the behavior of a buddy system containing a single
+ * large block of memory acted on by a series of small allocations.
+ * This behavior is a critical factor in sglist merging's success.
+ *
+ * -- nyc
+ */
+static inline void expand(struct page *page, int low, int high)
+{
+	unsigned long size = 1 << high;
+
+	while (high > low) {
+		high--;
+		size >>= 1;
+		add_to_free_list(&page[size], high);
+		page[size].order = high;
+	}
+}
+
+/*
+ * Go through the free lists and remove
+ * the smallest available page from the freelists
+ */
+static struct page *
+get_page_from_freelists(unsigned int order)
+{
+    unsigned int current_order;
+	struct free_area *area;
+	struct page *page;
+
+	/* Find a page of the appropriate size in the preferred list */
+	for (current_order = order; current_order < MAX_ORDER; ++current_order) {
+		area = &free_area[current_order];
+		page = get_page_from_free_area(area);
+		if (!page)
+			continue;
+		del_page_from_free_list(page, current_order);
+		expand(page, order, current_order);
+        page->ref_count = 1;
+		return page;
+	}
+
+	return NULL;
+}
+
+struct page *alloc_pages(unsigned int order)
+{
+    struct page *page;
+    if (order >= MAX_ORDER) {
+        return NULL;
+    }
+    page = get_page_from_freelists(order);
+    return page;
+}
+
 void mm_init()
 {
     memmap_init();
     init_free_lists();
     mem_init();
+    alloc_pages(2);
 }
