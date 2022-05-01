@@ -1,6 +1,6 @@
 #include "uart.h"
 #include "shell.h"
-#include "stdint.h"
+#include "types.h"
 #include "dtb.h"
 #include "mm.h"
 

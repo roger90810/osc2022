@@ -4,18 +4,12 @@
 #include "stdlib.h"
 #include "string.h"
 #include "list.h"
+#include "types.h"
 
 #define MAX_ORDER   (11)
 #define MAX_ORDER_NR_PAGES (1 << (MAX_ORDER - 1))
 #define PAGE_SIZE   (1 << 12)   // 4096 Bytes
 #define MEM_SIZE    (MAX_ORDER_NR_PAGES * PAGE_SIZE) // 1024 * 4KB
-
-#define PAGE_TYPE_BASE	0xf0000000
-#define PAGE_MAPCOUNT_RESERVE   -128
-#define PG_buddy        0x00000080
-#define PG_offline      0x00000100
-#define PG_table        0x00000200
-#define PG_guard        0x00000400
 
 #ifndef ARCH_PFN_OFFSET
 #define ARCH_PFN_OFFSET		(0UL)
@@ -35,8 +29,9 @@ struct free_area {
 };
 
 struct page {
+    struct list_head list;
+    int ref_count;
     unsigned long flags;
-    unsigned int page_type;
     unsigned long order;
 };
 

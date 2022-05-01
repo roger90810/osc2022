@@ -9,11 +9,6 @@
 struct page mem_map[MAX_ORDER_NR_PAGES];
 struct free_area free_area[MAX_ORDER];
 
-void mm_init()
-{
-    memmap_init();
-    init_free_lists();
-}
 
 static void init_free_lists()
 {
@@ -26,6 +21,7 @@ static void init_free_lists()
 
 static void __init_single_page(struct page *page, unsigned long pfn)
 {
+    page->ref_count = 1;
     memset(page, 0, sizeof(struct page));
 }
 
@@ -40,4 +36,178 @@ static void memmap_init()
         page = pfn_to_page(pfn);
         __init_single_page(page, pfn);
     }
+}
+
+/*
+ * Locate the struct page for both the matching buddy in our
+ * pair (buddy1) and the combined O(n+1) page they form (page).
+ *
+ * 1) Any buddy B1 will have an order O twin B2 which satisfies
+ * the following equation:
+ *     B2 = B1 ^ (1 << O)
+ * For example, if the starting buddy (buddy2) is #8 its order
+ * 1 buddy is #10:
+ *     B2 = 8 ^ (1 << 1) = 8 ^ 2 = 10
+ *
+ * 2) Any buddy B will have an order O+1 parent P which
+ * satisfies the following equation:
+ *     P = B & ~(1 << O)
+ *
+ * Assumption: *_mem_map is contiguous at least up to MAX_ORDER
+ */
+static inline unsigned long
+__find_buddy_pfn(unsigned long page_pfn, unsigned int order)
+{
+        return page_pfn ^ (1 << order);
+}
+
+/*
+ * This function checks whether a page and its buddy have the same order.
+ */
+static inline bool page_is_buddy(struct page *page, struct page *buddy,
+                                unsigned int order)
+{
+    if (buddy->order != order)
+        return false;
+    if (buddy->ref_count != 0)
+        return false;
+    return true;
+}
+
+/* Used for pages not on another list */
+static inline void add_to_free_list(struct page *page, unsigned int order)
+{
+	struct free_area *area = &free_area[order];
+
+	list_add(&page->list, &area->free_list);
+	area->nr_free++;
+}
+
+/* Used for pages not on another list */
+static inline void add_to_free_list_tail(struct page *page, unsigned int order)
+{
+	struct free_area *area = &free_area[order];
+
+	list_add_tail(&page->list, &area->free_list);
+	area->nr_free++;
+}
+
+static inline void del_page_from_free_list(struct page *page, unsigned int order)
+{
+	page->order = 0;
+	free_area[order].nr_free--;
+}
+
+/*
+ * If this is not the largest possible page, check if the buddy
+ * of the next-highest order is free. If it is, it's possible
+ * that pages are being freed that will coalesce soon. In case,
+ * that is happening, add the free page to the tail of the list
+ * so it's less likely to be used soon and more likely to be merged
+ * as a higher order page
+ */
+static inline bool
+buddy_merge_likely(unsigned long pfn, unsigned long buddy_pfn,
+                   struct page *page, unsigned int order)
+{
+	struct page *higher_page, *higher_buddy;
+	unsigned long combined_pfn;
+
+	if (order >= MAX_ORDER - 2)
+		return false;
+
+	combined_pfn = buddy_pfn & pfn;
+	higher_page = page + (combined_pfn - pfn);
+	buddy_pfn = __find_buddy_pfn(combined_pfn, order + 1);
+	higher_buddy = higher_page + (buddy_pfn - combined_pfn);
+
+	return page_is_buddy(higher_page, higher_buddy, order + 1);
+}
+
+static inline void free_one_page(struct page *page, unsigned long pfn,
+                                 unsigned int order)
+{
+    unsigned int max_order = MAX_ORDER - 1;
+    unsigned long buddy_pfn;
+    unsigned long combined_pfn;
+    struct page *buddy;
+    bool to_tail;
+
+continue_merging:
+    while (order < max_order) {
+        buddy_pfn = __find_buddy_pfn(pfn, order);
+        buddy = page + (buddy_pfn - pfn);
+
+        if (!page_is_buddy(page, buddy, order))
+            goto done_merging;
+            
+        del_page_from_free_list(buddy, order);
+        combined_pfn = buddy_pfn & pfn;
+        page = page + (combined_pfn - pfn);
+        pfn = combined_pfn;
+        order++;
+    }
+    if (order < MAX_ORDER - 1) {
+        /* If we are here, it means order is >= pageblock_order.
+		 * We want to prevent merge between freepages on pageblock
+		 * without fallbacks and normal pageblock. Without this,
+		 * pageblock isolation could cause incorrect freepage or CMA
+		 * accounting or HIGHATOMIC accounting.
+		 *
+		 * We don't want to hit this code for the more frequent
+		 * low-order merging.
+		 */
+        int buddy_mt;
+
+		buddy_pfn = __find_buddy_pfn(pfn, order);
+		buddy = page + (buddy_pfn - pfn);
+
+		if (!page_is_buddy(page, buddy, order))
+			goto done_merging;
+		max_order = order + 1;
+		goto continue_merging;
+    }
+    
+done_merging:
+    page->order = order;
+    to_tail = buddy_merge_likely(pfn, buddy_pfn, page, order);
+	if (to_tail)
+		add_to_free_list_tail(page, order);
+	else
+		add_to_free_list(page, order);
+}
+
+void free_pages_core(struct page *page, unsigned int order)
+{
+    unsigned int nr_pages = 1 << order;
+    struct page *p = page;
+    for (int i = 0; i < nr_pages; i++) {
+        p->ref_count = 0;
+        p++;
+    }
+    free_one_page(page, page_to_pfn(page), order);
+}
+
+void mem_init()
+{
+    int order;
+    unsigned long start_pfn = 0;
+    unsigned long end_pfn = MAX_ORDER_NR_PAGES;
+
+    while (start_pfn < end_pfn) {
+
+        order = min(MAX_ORDER - 1UL, __ffs(start_pfn));
+        while (start_pfn + (1UL << order) > end_pfn)
+            order--;
+        
+        free_pages_core(pfn_to_page(start_pfn), order);
+        start_pfn += (1UL << order);
+    }
+}
+
+void mm_init()
+{
+    memmap_init();
+    init_free_lists();
+    mem_init();
 }
