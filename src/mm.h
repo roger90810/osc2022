@@ -5,6 +5,7 @@
 #include "string.h"
 #include "list.h"
 #include "types.h"
+#include "uart.h"
 
 #define MAX_ORDER   (11)
 #define MAX_ORDER_NR_PAGES (1 << (MAX_ORDER - 1))
@@ -38,4 +39,15 @@ struct page {
 static void memmap_init();
 static void init_free_lists();
 void mm_init();
+void free_page(unsigned int pfn);
+
+/*
+ *  Only map a fixed, small portion of memory.
+ *  0x100000 ~ 0x500000 (4MB)
+ *  TODO : parse dtb to get the memory information
+ */
+extern struct page mem_map[MAX_ORDER_NR_PAGES];
+extern struct free_area free_area[MAX_ORDER];
+
+
 #endif

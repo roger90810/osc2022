@@ -81,6 +81,11 @@ static inline void add_to_free_list(struct page *page, unsigned int order)
 
 	list_add(&page->list, &area->free_list);
 	area->nr_free++;
+    uart_puts("Add page [");
+    uart_putx(page - mem_map);
+    uart_puts("] to free_list of order ");
+    uart_putx(order);
+    uart_puts("\n");
 }
 
 /* Used for pages not on another list */
@@ -90,12 +95,23 @@ static inline void add_to_free_list_tail(struct page *page, unsigned int order)
 
 	list_add_tail(&page->list, &area->free_list);
 	area->nr_free++;
+    uart_puts("Add page [");
+    uart_putx(page - mem_map);
+    uart_puts("] to free_list of order ");
+    uart_putx(order);
+    uart_puts("\n");
 }
 
 static inline void del_page_from_free_list(struct page *page, unsigned int order)
 {
+    list_del(&page->list);
 	page->order = 0;
 	free_area[order].nr_free--;
+    uart_puts("Delete page [");
+    uart_putx(page - mem_map);
+    uart_puts("] from free_list of order ");
+    uart_putx(order);
+    uart_puts("\n");
 }
 
 /*
@@ -140,9 +156,15 @@ continue_merging:
 
         if (!page_is_buddy(page, buddy, order))
             goto done_merging;
-            
         del_page_from_free_list(buddy, order);
         combined_pfn = buddy_pfn & pfn;
+        uart_puts("Merge page [");
+        uart_putx(pfn);
+        uart_puts("] and [");
+        uart_putx(buddy_pfn);
+        uart_puts("] to [");
+        uart_putx(combined_pfn);
+        uart_puts("]\n");
         page = page + (combined_pfn - pfn);
         pfn = combined_pfn;
         order++;
@@ -278,10 +300,17 @@ struct page *alloc_pages(unsigned int order)
     return page;
 }
 
+void free_page(unsigned int pfn)
+{
+    struct page *page;
+    page = pfn_to_page(pfn);
+    page->ref_count = 0;
+    free_one_page(page, pfn, page->order);
+}
+
 void mm_init()
 {
     memmap_init();
     init_free_lists();
     mem_init();
-    alloc_pages(2);
 }
