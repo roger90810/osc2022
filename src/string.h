@@ -1,7 +1,7 @@
 #ifndef __STRING_H
 #define __STRING_H
 
-#include "stdint.h"
+#include "types.h"
 
 #define IS_DIGIT(c)  ((c>='0')&&(c<='9'))
 #define IS_ALPHA(c)  (((c>='a')&&(c<='z'))||((c>='A')&&(c<='Z')))
@@ -12,4 +12,5 @@ char *strpbrk(const char *, const char *);
 char *strsep(char **, const char *);
 uint32_t atou(const char *s);
 char *strncpy(char *dest, const char *src, uint32_t count);
+void *memset(void *s, int c, unsigned long count);
 #endif

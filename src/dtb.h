@@ -1,7 +1,7 @@
 #ifndef __DTB_H
 #define __DTB_H
 
-#include "stdint.h"
+#include "types.h"
 #include "uart.h"
 #include "string.h"
 #include "stdlib.h"

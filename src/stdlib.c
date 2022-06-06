@@ -1,5 +1,4 @@
 #include "stdlib.h"
-
 extern unsigned long __heap_start; /* declared in the linker script */
 extern unsigned long __heap_size;  /* declared in the linker script */
 static unsigned long heap_top = (unsigned long) &__heap_start;

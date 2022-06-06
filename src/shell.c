@@ -145,6 +145,24 @@ void cmd_set_timeout(const char* msg, const char* sec_s)
     return;
 }
 
+void cmd_alloc_page(const char* order_s)
+{
+    unsigned int order = atou(order_s);
+    struct page *page = alloc_pages(order);
+    if (!page) {
+        uart_puts("Allocate page failed\n");
+    } else {
+        uart_puts("Page ");
+        uart_putx(page - mem_map);
+        uart_puts(" alloc!\n");
+    }
+}
+
+void cmd_free_page(const char* pfn_s)
+{
+    unsigned int pfn = atou(pfn_s);
+    free_page(pfn);
+}
 void exec_cmd(const char *cmd)
 {
     int argc = 0;
@@ -180,6 +198,10 @@ void exec_cmd(const char *cmd)
         cmd_exec(argv[1]);
     else if (strcmp(argv[0], "set_timeout") == 0)
         cmd_set_timeout(argv[1], argv[2]);
+    else if (strcmp(argv[0], "alloc_page") == 0)
+        cmd_alloc_page(argv[1]);
+    else if (strcmp(argv[0], "free_page") == 0)
+        cmd_free_page(argv[1]);
     else
         cmd_invalid();
 }
