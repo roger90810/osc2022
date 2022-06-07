@@ -1,3 +1,6 @@
+#ifndef __TYPES_H
+#define __TYPES_H
+
 typedef unsigned char      uint8_t;
 typedef unsigned short int uint16_t;
 typedef unsigned int       uint32_t;
@@ -6,3 +9,5 @@ typedef _Bool              bool;
 #define false 0
 #define true 1
 #define NULL ((void *)0)
+
+#endif

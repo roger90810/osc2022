@@ -1,5 +1,6 @@
 #ifndef __QUEUE_H
 #define __QUEUE_H
+
 #include "types.h"
 
 #define MAX_SIZE 1024

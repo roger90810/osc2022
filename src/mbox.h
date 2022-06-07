@@ -1,3 +1,6 @@
+#ifndef __MBOX_H
+#define __MBOX_H
+
 #include "mmio.h"
 
 // extern volatile unsigned int mbox[36];
@@ -41,3 +44,5 @@
 void get_board_revision(unsigned int *);
 void get_ARM_memory(unsigned int *, unsigned int *);
 int mbox_call(unsigned int *, const unsigned char);
+
+#endif

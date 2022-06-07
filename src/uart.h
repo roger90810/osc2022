@@ -37,4 +37,5 @@ void async_uart_init();
 void async_uart_putc(const char c);
 void async_uart_puts(const char *s);
 char async_uart_getc();
+
 #endif

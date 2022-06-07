@@ -1,3 +1,6 @@
+#ifndef __MMIO_H
+#define __MMIO_H
+
 #define MMIO_BASE   (0x3F000000)
 
 #define PM_PASSWORD (0x5a000000)
@@ -6,3 +9,5 @@
 
 void reset(const int tick);
 void cancel_reset();
+
+#endif
