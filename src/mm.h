@@ -36,9 +36,8 @@ struct page {
     unsigned long order;
 };
 
-static void memmap_init();
-static void init_free_lists();
 void mm_init();
+struct page *alloc_pages(unsigned int order);
 void free_page(unsigned int pfn);
 
 /*

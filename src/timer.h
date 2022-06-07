@@ -3,6 +3,7 @@
 #include "types.h"
 #include "stdlib.h"
 #include "string.h"
+#include "exception.h"
 
 typedef struct timer_t
 {

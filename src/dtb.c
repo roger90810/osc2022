@@ -1,11 +1,5 @@
 #include "dtb.h"
 
-void byte_reverse(uint32_t* bytes)
-{
-    uint8_t *byte = (uint8_t *)bytes;
-    byte[0]^=byte[3]^=byte[0]^=byte[3];
-    byte[1]^=byte[2]^=byte[1]^=byte[2];
-}
 
 int dtb_fdt_begin_parse(uint8_t** curr_struct_offset)
 {
@@ -29,11 +23,11 @@ int dtb_fdt_prop_parse(uint8_t** curr_struct_offset, const uint8_t* string_base,
     fdt_prop_t *fdt_prop = (fdt_prop_t *)(*curr_struct_offset);
     uint32_t prop_len = fdt_prop->len;
     uint32_t nameoff = fdt_prop->nameoff;
-    byte_reverse(&prop_len);
-    byte_reverse(&nameoff);
+    prop_len = __builtin_bswap32(prop_len);
+    nameoff = __builtin_bswap32(nameoff);
 
     *curr_struct_offset += sizeof(fdt_prop_t);
-    uint8_t *name = string_base + nameoff;
+    const uint8_t *name = string_base + nameoff;
     // print prop and string
     // uart_puts("  - ");
     // uart_puts(name);
@@ -60,9 +54,9 @@ void dtb_parser(uint64_t DTB_BASE, void (*initramfs_callback)(uint8_t*, uint32_t
     uint32_t version = header->version;
     uint32_t off_dt_struct = header->off_dt_struct;
     uint32_t off_dt_strings = header->off_dt_strings;
-    byte_reverse(&version);
-    byte_reverse(&off_dt_struct);
-    byte_reverse(&off_dt_strings);    
+    version = __builtin_bswap32(version);
+    off_dt_struct = __builtin_bswap32(off_dt_struct);
+    off_dt_strings = __builtin_bswap32(off_dt_strings);
     uint8_t *curr_struct_offset = (uint8_t *)header + off_dt_struct; // to the begin of struct block
     uint8_t *string_base = (uint8_t *)header + off_dt_strings; // to the begin of string block
     while (dtb_fdt_begin_parse(&curr_struct_offset) == 0) {

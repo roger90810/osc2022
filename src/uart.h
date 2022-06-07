@@ -33,5 +33,8 @@ char uart_getc();
 void uart_puts(const char *s);
 void uart_putx(const uint32_t);
 void uart_put_hb(const uint8_t c);
-
+void async_uart_init();
+void async_uart_putc(const char c);
+void async_uart_puts(const char *s);
+char async_uart_getc();
 #endif
