@@ -163,6 +163,16 @@ void cmd_free_page(const char* pfn_s)
     unsigned int pfn = atou(pfn_s);
     free_page(pfn);
 }
+
+void cmd_kmalloc(const char* size_s)
+{
+    unsigned int size = atou(size_s);
+    void *ptr = kmalloc(size);
+    uart_puts("kmalloc addr : ");
+    uart_putx(ptr);
+    uart_puts("\n");
+}
+
 void exec_cmd(const char *cmd)
 {
     int argc = 0;
@@ -202,6 +212,8 @@ void exec_cmd(const char *cmd)
         cmd_alloc_page(argv[1]);
     else if (strcmp(argv[0], "free_page") == 0)
         cmd_free_page(argv[1]);
+    else if (strcmp(argv[0], "kmalloc") == 0)
+        cmd_kmalloc(argv[1]);
     else
         cmd_invalid();
 }
