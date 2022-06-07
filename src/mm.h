@@ -1,5 +1,6 @@
 #ifndef __MM_H
 #define __MM_H
+
 #include "math.h"
 #include "stdlib.h"
 #include "string.h"
@@ -47,6 +48,5 @@ void free_page(unsigned int pfn);
  */
 extern struct page mem_map[MAX_ORDER_NR_PAGES];
 extern struct free_area free_area[MAX_ORDER];
-
 
 #endif
