@@ -15,9 +15,10 @@ struct pool {
     int obj_used;
     int page_used;
     uint64_t page_addr[MAX_POOL_PAGES];
-    struct list_head* free_list;
+    struct list_head free_list;
 };
 
 void* kmalloc(uint64_t size);
+void kfree(void* p);
 
 #endif
