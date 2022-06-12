@@ -44,11 +44,14 @@ start.o: start.S
 exception_table.o: exception_table.S
 	$(CC) $(CFLAGS) -c $< -o $@
 
+context_switch.o: context_switch.S
+	$(CC) $(CFLAGS) -c $< -o $@
+
 %.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
-kernel8.img: start.o exception_table.o $(OBJS)
-	$(LD) -nostdlib start.o exception_table.o $(OBJS) -T link.ld -o kernel8.elf
+kernel8.img: start.o exception_table.o context_switch.o $(OBJS)
+	$(LD) -nostdlib start.o exception_table.o context_switch.o $(OBJS) -T link.ld -o kernel8.elf
 	$(OBJCOPY) -O binary kernel8.elf kernel8.img
 
 kernel8.objdump: kernel8.elf
