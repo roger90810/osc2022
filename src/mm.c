@@ -23,6 +23,7 @@ static void __init_single_page(struct page *page, unsigned long pfn)
 {
     page->ref_count = 1;
     memset(page, 0, sizeof(struct page));
+    INIT_LIST_HEAD(&page->list);
 }
 
 static void memmap_init()
@@ -81,11 +82,11 @@ static inline void add_to_free_list(struct page *page, unsigned int order)
 
 	list_add(&page->list, &area->free_list);
 	area->nr_free++;
-    uart_puts("Add page [");
-    uart_putx(page - mem_map);
-    uart_puts("] to free_list of order ");
-    uart_putx(order);
-    uart_puts("\n");
+    // uart_puts("Add page [");
+    // uart_putx(page - mem_map);
+    // uart_puts("] to free_list of order ");
+    // uart_putx(order);
+    // uart_puts("\n");
 }
 
 /* Used for pages not on another list */
@@ -95,11 +96,11 @@ static inline void add_to_free_list_tail(struct page *page, unsigned int order)
 
 	list_add_tail(&page->list, &area->free_list);
 	area->nr_free++;
-    uart_puts("Add page [");
-    uart_putx(page - mem_map);
-    uart_puts("] to free_list of order ");
-    uart_putx(order);
-    uart_puts("\n");
+    // uart_puts("Add page [");
+    // uart_putx(page - mem_map);
+    // uart_puts("] to free_list of order ");
+    // uart_putx(order);
+    // uart_puts("\n");
 }
 
 static inline void del_page_from_free_list(struct page *page, unsigned int order)
@@ -107,11 +108,11 @@ static inline void del_page_from_free_list(struct page *page, unsigned int order
     list_del(&page->list);
 	page->order = 0;
 	free_area[order].nr_free--;
-    uart_puts("Delete page [");
-    uart_putx(page - mem_map);
-    uart_puts("] from free_list of order ");
-    uart_putx(order);
-    uart_puts("\n");
+    // uart_puts("Delete page [");
+    // uart_putx(page - mem_map);
+    // uart_puts("] from free_list of order ");
+    // uart_putx(order);
+    // uart_puts("\n");
 }
 
 /*
@@ -158,13 +159,13 @@ continue_merging:
             goto done_merging;
         del_page_from_free_list(buddy, order);
         combined_pfn = buddy_pfn & pfn;
-        uart_puts("Merge page [");
-        uart_putx(pfn);
-        uart_puts("] and [");
-        uart_putx(buddy_pfn);
-        uart_puts("] to [");
-        uart_putx(combined_pfn);
-        uart_puts("]\n");
+        // uart_puts("Merge page [");
+        // uart_putx(pfn);
+        // uart_puts("] and [");
+        // uart_putx(buddy_pfn);
+        // uart_puts("] to [");
+        // uart_putx(combined_pfn);
+        // uart_puts("]\n");
         page = page + (combined_pfn - pfn);
         pfn = combined_pfn;
         order++;

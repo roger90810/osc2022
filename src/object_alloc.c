@@ -50,14 +50,16 @@ void* obj_alloc_kernel(int token)
     // reused free obj
     struct list_head *head = &pool->free_list;
     if (head->next != head) {
-        addr = head->next;
+        addr = (uint64_t)head->next;
         list_del(head->next);
         return (void *)addr;
     }
 
     // need new page
     if (pool->obj_used >= pool->page_used * pool->obj_per_page) {
-        pool->page_addr[pool->page_used] = (uint64_t) alloc_pages(0);
+        struct page *page = alloc_pages(0);
+        unsigned long pfn = page_to_pfn(page);
+        pool->page_addr[pool->page_used] = pfn_to_phys(pfn);
         pool->page_used++;
     }
 
@@ -79,7 +81,7 @@ void* kmalloc(uint64_t size)
 {
     // size too large
     if (size >= PAGE_SIZE) {
-        uart_puts("kmalloc using buddy\n");
+        // uart_puts("kmalloc using buddy\n");
         int order;
         for (int i = 0; i < MAX_ORDER; i++) {
             if (size <= (uint64_t)((1 << i) * PAGE_SIZE)) {
@@ -87,10 +89,12 @@ void* kmalloc(uint64_t size)
                 break;
             }
         }
-        return (void*)alloc_pages(order);
+        struct page *page = alloc_pages(order);
+        unsigned long pfn = page_to_pfn(page);
+        return (void*)pfn_to_phys(pfn);
     }
     else {
-        uart_puts("kmalloc using object allocator\n");
+        // uart_puts("kmalloc using object allocator\n");
         // check exist object allocator
         for (int i = 0; i < MAX_OBJ_ALLOCTOR_NUM; i++) {
             if ((uint64_t)obj_allocator[i].obj_size == size) {
@@ -112,12 +116,12 @@ void kfree(void* p)
             addr_pfn = phys_to_pfn((uint64_t)p);
             page_pfn = phys_to_pfn(obj_allocator[i].page_addr[j]);
             if (addr_pfn == page_pfn) {
-                uart_puts("free using obj allocator\n");
+                // uart_puts("free using obj allocator\n");
                 obj_free(i, p);
                 return;
             }
         }
     }
-    uart_puts("free using buddy\n");
+    // uart_puts("free using buddy\n");
     free_page(addr_pfn);
 }
