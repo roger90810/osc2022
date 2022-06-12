@@ -11,6 +11,7 @@
 #include "exception.h"
 #include "mm.h"
 #include "object_alloc.h"
+#include "thread.h"
 
 #define CMD_BUF_SIZE 32
 #define MAX_ARG_SIZE 4

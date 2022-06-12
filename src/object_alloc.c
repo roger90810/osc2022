@@ -8,7 +8,7 @@ void pool_init(struct pool* pool, uint64_t size)
     pool->obj_per_page = PAGE_SIZE / size;
     pool->page_used = 0;
     pool->obj_used = 0;
-    INIT_LIST_HEAD(pool->free_list);
+    INIT_LIST_HEAD(&pool->free_list);
 }
 
 int obj_alloc_register(uint64_t size)
@@ -45,31 +45,35 @@ void* obj_alloc_kernel(int token)
     int pool_num = token;
     struct pool* pool = &obj_allocator[pool_num];
 
+    uint64_t addr;
+
     // reused free obj
-    struct list_head *obj = pool->free_list;
-    if (obj->next != obj) {
-        list_del(pool->free_list);
-        // pool->free_list = pool->free_list->next;
-        return obj;
+    struct list_head *head = &pool->free_list;
+    if (head->next != head) {
+        addr = (uint64_t)head->next;
+        list_del(head->next);
+        return (void *)addr;
     }
 
     // need new page
     if (pool->obj_used >= pool->page_used * pool->obj_per_page) {
-        pool->page_addr[pool->page_used] = (uint64_t) alloc_pages(0);
+        struct page *page = alloc_pages(0);
+        unsigned long pfn = page_to_pfn(page);
+        pool->page_addr[pool->page_used] = pfn_to_phys(pfn);
         pool->page_used++;
     }
 
     // allocate new obj
-    uint64_t addr = pool->page_addr[pool->page_used - 1] + pool->obj_used * pool->obj_size;
+    addr = pool->page_addr[pool->page_used - 1] + pool->obj_used * pool->obj_size;
     pool->obj_used++;
     return (void*) addr;
 }
 
-void obj_free(int token, uint64_t addr)
+void obj_free(int token, void* addr)
 {
     int pool_num = token;
     struct pool* pool = &obj_allocator[pool_num];
-    list_add_tail((struct list_head*)addr, pool->free_list);
+    list_add_tail((struct list_head*)addr, &pool->free_list);
     pool->obj_used--;
 }
 
@@ -77,7 +81,7 @@ void* kmalloc(uint64_t size)
 {
     // size too large
     if (size >= PAGE_SIZE) {
-        uart_puts("kmalloc using buddy\n");
+        // uart_puts("kmalloc using buddy\n");
         int order;
         for (int i = 0; i < MAX_ORDER; i++) {
             if (size <= (uint64_t)((1 << i) * PAGE_SIZE)) {
@@ -85,10 +89,12 @@ void* kmalloc(uint64_t size)
                 break;
             }
         }
-        return (void*)alloc_pages(order);
+        struct page *page = alloc_pages(order);
+        unsigned long pfn = page_to_pfn(page);
+        return (void*)pfn_to_phys(pfn);
     }
     else {
-        uart_puts("kmalloc using object allocator\n");
+        // uart_puts("kmalloc using object allocator\n");
         // check exist object allocator
         for (int i = 0; i < MAX_OBJ_ALLOCTOR_NUM; i++) {
             if ((uint64_t)obj_allocator[i].obj_size == size) {
@@ -101,20 +107,21 @@ void* kmalloc(uint64_t size)
     }
 }
 
-// void kfree(void* addr)
-// {
-//     for (int i = 0; i < MAX_OBJ_ALLOCTOR_NUM; i++) {
-//         struct pool pool = obj_allocator[i];
-//         for (int j = 0; j < pool.page_used; j++) {
-//             int addr_pfn = phy_to_pfn(virtual_to_physical((uint64_t)addr));
-//             int page_pfn = phy_to_pfn(virtual_to_physical(pool.page_addr[j]));
-//             if (addr_pfn == page_pfn) {
-//                 uart_printf("free using obj allocator\n");
-//                 obj_free(i, addr);
-//                 return;
-//             }
-//         }
-//     }
-//     uart_printf("free using buddy\n");
-//     buddy_free(addr);
-// }
+void kfree(void* p)
+{
+    int addr_pfn;
+    int page_pfn;
+    for (int i = 0; i < MAX_OBJ_ALLOCTOR_NUM; i++) {
+        for (int j = 0; j < obj_allocator[i].page_used; j++) {
+            addr_pfn = phys_to_pfn((uint64_t)p);
+            page_pfn = phys_to_pfn(obj_allocator[i].page_addr[j]);
+            if (addr_pfn == page_pfn) {
+                // uart_puts("free using obj allocator\n");
+                obj_free(i, p);
+                return;
+            }
+        }
+    }
+    // uart_puts("free using buddy\n");
+    free_page(addr_pfn);
+}
