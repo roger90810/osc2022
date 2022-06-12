@@ -173,6 +173,11 @@ void cmd_kmalloc(const char* size_s)
     uart_puts("\n");
 }
 
+void cmd_thread_test()
+{
+    thread_test();
+}
+
 void exec_cmd(const char *cmd)
 {
     int argc = 0;
@@ -214,6 +219,8 @@ void exec_cmd(const char *cmd)
         cmd_free_page(argv[1]);
     else if (strcmp(argv[0], "kmalloc") == 0)
         cmd_kmalloc(argv[1]);
+    else if (strcmp(argv[0], "thread_test") == 0)
+        cmd_thread_test();
     else
         cmd_invalid();
 }
