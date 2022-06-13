@@ -178,6 +178,11 @@ void cmd_thread_test()
     thread_test();
 }
 
+void cmd_fork_test()
+{
+    fork_test();
+}
+
 void exec_cmd(const char *cmd)
 {
     int argc = 0;
@@ -221,6 +226,8 @@ void exec_cmd(const char *cmd)
         cmd_kmalloc(argv[1]);
     else if (strcmp(argv[0], "thread_test") == 0)
         cmd_thread_test();
+    else if (strcmp(argv[0], "fork_test") == 0)
+        cmd_fork_test();
     else
         cmd_invalid();
 }

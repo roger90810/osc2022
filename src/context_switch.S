@@ -19,3 +19,24 @@ switch_to:
     mov sp,  x9
     msr tpidr_el1, x2
     ret
+
+.global store_context
+store_context:
+    stp x19, x20, [x0, 16 * 0]
+    stp x21, x22, [x0, 16 * 1]
+    stp x23, x24, [x0, 16 * 2]
+    stp x25, x26, [x0, 16 * 3]
+    stp x27, x28, [x0, 16 * 4]
+    stp fp, lr, [x0, 16 * 5]
+    mov x9, sp
+    str x9, [x0, 16 * 6]
+    ret
+
+.global from_EL1_to_EL0
+from_EL1_to_EL0:
+    msr     elr_el1, x0
+    msr     sp_el0, x1
+    mov     sp, x2
+    mov     x1, 0x340
+    msr     spsr_el1, x1
+    eret

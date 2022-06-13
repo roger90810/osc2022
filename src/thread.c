@@ -15,6 +15,11 @@ int get_new_pid()
     return -1;
 }
 
+int thread_getpid()
+{
+    return get_current_thread()->pid;
+}
+
 void thread_init()
 {
     struct thread *kernel_thread;
@@ -108,13 +113,12 @@ void thread_schedule()
         }
     }
 
-    // TODO : EXIT should not execute to here???????
     if (next_thread != NULL) {
-        // log_puts("[thread_schedule] curr_thread: 0x", THREAD_LOG_ON);
-        // log_puth((unsigned long)curr_thread, THREAD_LOG_ON);
-        // log_puts(", next_thread: 0x", THREAD_LOG_ON);
-        // log_puth((unsigned long)next_thread, THREAD_LOG_ON);
-        // log_puts("\n", THREAD_LOG_ON);
+        // uart_puts("[thread_schedule] curr_thread: ");
+        // uart_putx((unsigned long)curr_thread);
+        // uart_puts(", next_thread: ");
+        // uart_putx((unsigned long)next_thread);
+        // uart_puts("\n");
         
         if (curr_thread->pid != 0) {
             list_add_tail(&curr_thread->list, idle_queue);
@@ -132,6 +136,123 @@ void thread_exit()
     curr_thread->status = THREAD_EXIT;
     thread_schedule();
     return;
+}
+
+
+void thread_timer_task()
+{
+    unsigned long cntfrq_el0;
+    asm volatile("mrs %0,  cntfrq_el0" : "=r"(cntfrq_el0) : );
+    add_timer(thread_timer_task, NULL, 1);
+    return;
+}
+
+void thread_exec(void (*func)())
+{
+    struct thread *new_thread = NULL;
+    int pid;
+    unsigned long current_el;
+    if (idle_queue == NULL)
+        thread_init();
+    pid = get_new_pid();
+
+    if (pid == -1)
+        return;
+
+    new_thread = kmalloc(sizeof(struct thread));
+    new_thread->pid          = pid;
+    new_thread->status       = THREAD_IDLE;
+    new_thread->code_addr    = (unsigned long)func;
+    new_thread->kernel_stack = (unsigned long)kmalloc(PAGE_SIZE << 2);
+    new_thread->user_stack   = (unsigned long)kmalloc(PAGE_SIZE << 2);
+
+    new_thread->context.lr = (unsigned long)func;
+    new_thread->context.fp = (unsigned long)new_thread->user_stack + THREAD_STACK_SIZE;
+    new_thread->context.sp = (unsigned long)new_thread->user_stack + THREAD_STACK_SIZE;
+
+    unsigned long tmp;
+    asm volatile("mrs %0, cntkctl_el1" : "=r"(tmp));
+    tmp |= 1;
+    asm volatile("msr cntkctl_el1, %0" : : "r"(tmp));
+    
+    add_timer(thread_timer_task, NULL, 1);
+
+    // Get current EL
+    asm volatile ("mrs %0, CurrentEL" : "=r" (current_el));
+    current_el = current_el >> 2;
+
+    // Print prompt
+    uart_puts("Current EL: 0x");
+    uart_putx(current_el);
+    uart_puts("\n");
+    uart_puts("User program at: 0x");
+    uart_putx((unsigned long) func);
+    uart_puts("\n");
+    uart_puts("User program stack top: 0x");
+    uart_putx((unsigned long) new_thread->context.sp);
+    uart_puts("\n");
+    uart_puts("-----------------Entering user program-----------------\n");
+
+    /* Enable RX interrupt */
+    // set_aux_int(false);
+    // set_uart_rx_int(false);
+    // set_uart_tx_int(false);
+    
+    // disable UART interrupt
+    *(uint32_t*)IRQ_DISABLE_IRQS_1 = (1 << IRQ_AUX_INTERRUPT_BIT);
+    *AUX_MU_IER = 0;       // disable interrupt
+
+    asm volatile ("msr tpidr_el1, %0" : : "r"(new_thread));
+    from_EL1_to_EL0((unsigned long)func, (unsigned long)new_thread->user_stack + THREAD_STACK_SIZE, (unsigned long)new_thread->kernel_stack + THREAD_STACK_SIZE);
+    return;
+}
+
+int thread_fork(struct trapframe* trapframe)
+{
+    struct thread *parent_thread;
+    struct thread *child_thread;
+    struct thread *curr_thread;
+    struct trapframe *child_trap_frame;
+
+    unsigned long k_offset, u_offset;
+
+    // set_interrupt(false);
+
+    parent_thread = get_current_thread();
+    child_thread  = thread_create((void *)parent_thread->code_addr);
+
+    k_offset = (unsigned long)child_thread->kernel_stack - (unsigned long)parent_thread->kernel_stack;
+    u_offset = (unsigned long)child_thread->user_stack - (unsigned long)parent_thread->user_stack;
+    child_trap_frame = (struct trapframe *)((unsigned long)trapframe + k_offset);
+
+    store_context(&child_thread->context);
+    curr_thread = get_current_thread();
+
+    if (curr_thread->pid == parent_thread->pid) {
+        trapframe->regs[0] = child_thread->pid;
+
+        for (int i = 0; i < THREAD_STACK_SIZE; i++) {
+            ((char *) child_thread->kernel_stack)[i] = ((char *) parent_thread->kernel_stack)[i];
+            ((char *) child_thread->user_stack)[i] = ((char *) parent_thread->user_stack)[i];
+        }
+
+        // for (int i = 0; i < THREAD_MAX_SIG_NUM; i++)
+        // {
+        //     child_thread->signal_handlers[i] = parent_thread->signal_handlers[i];
+        //     child_thread->signal_num[i] = parent_thread->signal_num[i];
+        // }
+
+        child_thread->context.sp += k_offset;
+        child_thread->context.fp += k_offset;
+        child_trap_frame->sp_el0 += u_offset;
+        child_trap_frame->regs[0] = 0;
+
+        return child_thread->pid;
+    }
+
+    // set_interrupt(true);
+
+    return 0;
 }
 
 // Test
@@ -161,4 +282,80 @@ void thread_test()
     for (int i = 0; i < 5; i++)
         thread_create(test_thread_func);
     thread_schedule();
+}
+
+void fork_test_func()
+{
+    uart_puts("\nFork Test, pid ");
+    int pid = syscall_getpid();
+    uart_putx(pid);
+    uart_puts("\n");
+
+    int cnt = 1;
+    int ret = 0;
+
+    ret = syscall_fork();
+
+    if (ret == 0) { // child
+        long long cur_sp;
+        asm volatile("mov %0, sp" : "=r"(cur_sp));
+
+        uart_puts("first child pid: ");
+        uart_putx(syscall_getpid());
+        uart_puts(", cnt: ");
+        uart_putx(cnt);
+        uart_puts(", ptr: 0x");
+        uart_putx(&cnt);
+        uart_puts(", sp : 0x");
+        uart_putx(cur_sp);
+        uart_puts("\n");
+
+        ++cnt;
+
+        if ((ret = syscall_fork()) != 0){
+            asm volatile("mov %0, sp" : "=r"(cur_sp));
+            
+            uart_puts("first child pid: ");
+            uart_putx(syscall_getpid());
+            uart_puts(", cnt: ");
+            uart_putx(cnt);
+            uart_puts(", ptr: 0x");
+            uart_putx(&cnt);
+            uart_puts(", sp : 0x");
+            uart_putx(cur_sp);
+            uart_puts("\n");
+        }
+        else{
+            while (cnt < 5) {
+                asm volatile("mov %0, sp" : "=r"(cur_sp));
+
+                uart_puts("second child pid: ");
+                uart_putx(syscall_getpid());
+                uart_puts(", cnt: ");
+                uart_putx(cnt);
+                uart_puts(", ptr: 0x");
+                uart_putx(&cnt);
+                uart_puts(", sp : 0x");
+                uart_putx(cur_sp);
+                uart_puts("\n");
+
+                ++cnt;
+            }
+        }
+
+        syscall_exit();
+    }
+    else {
+        uart_puts("parent here, pid ");
+        uart_putx(syscall_getpid());
+        uart_puts(", child ");
+        uart_putx(ret);
+        uart_puts("\n");
+    }
+    return;
+}
+
+void fork_test()
+{
+    thread_exec(fork_test_func);
 }

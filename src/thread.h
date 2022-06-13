@@ -3,6 +3,7 @@
 
 #include "types.h"
 #include "list.h"
+#include "uart.h"
 #include "mm.h"
 #include "object_alloc.h"
 
@@ -47,6 +48,16 @@ struct thread* thread_create(void (*func)());
 extern void switch_to(struct thread_context *curr_context,
                       struct thread_context *next_context,
                       struct thread *next_thread);
+extern void from_EL1_to_EL0(unsigned long func, unsigned long user_sp, unsigned long kernel_sp);
+int get_new_pid();
+int thread_getpid();
+void thread_init();
+struct thread *thread_create(void (*func)());
+struct thread *get_current_thread();
+void thread_schedule();
+void thread_exit();
+void thread_exec(void (*func)());
 void thread_test();
-
+int thread_fork(struct trapframe* trapframe);
+void fork_test();
 #endif

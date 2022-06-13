@@ -82,12 +82,16 @@ void* kmalloc(uint64_t size)
     // size too large
     if (size >= PAGE_SIZE) {
         // uart_puts("kmalloc using buddy\n");
-        int order;
+        int order = MAX_ORDER;
         for (int i = 0; i < MAX_ORDER; i++) {
             if (size <= (uint64_t)((1 << i) * PAGE_SIZE)) {
                 order = i;
                 break;
             }
+        }
+        if (order == MAX_ORDER) {
+            uart_puts("Error, alloc size cannot greater than MAX_ORDER");
+            return NULL;
         }
         struct page *page = alloc_pages(order);
         unsigned long pfn = page_to_pfn(page);

@@ -47,11 +47,14 @@ exception_table.o: exception_table.S
 context_switch.o: context_switch.S
 	$(CC) $(CFLAGS) -c $< -o $@
 
+syscall.o: syscall.S
+	$(CC) $(CFLAGS) -c $< -o $@
+
 %.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
-kernel8.img: start.o exception_table.o context_switch.o $(OBJS)
-	$(LD) -nostdlib start.o exception_table.o context_switch.o $(OBJS) -T link.ld -o kernel8.elf
+kernel8.img: start.o exception_table.o context_switch.o syscall.o $(OBJS)
+	$(LD) -nostdlib start.o exception_table.o context_switch.o syscall.o $(OBJS) -T link.ld -o kernel8.elf
 	$(OBJCOPY) -O binary kernel8.elf kernel8.img
 
 kernel8.objdump: kernel8.elf
@@ -61,7 +64,7 @@ clean:
 	rm kernel8.elf *.o >/dev/null 2>/dev/null || true
 
 run:
-	qemu-system-aarch64 -M raspi3b -kernel kernel8.img -serial null -serial stdio -initrd ./initramfs/initramfs.cpio -dtb ./devicetree/bcm2710-rpi-3-b-plus.dtb
+	qemu-system-aarch64 -M raspi3b -kernel kernel8.img -serial null -serial stdio -initrd ./initramfs/initramfs.cpio -dtb ./devicetree/bcm2710-rpi-3-b-plus.dtb -d
 
 debug:
 	qemu-system-aarch64 -M raspi3b -kernel kernel8.img -serial null -serial stdio -initrd ./initramfs/initramfs.cpio -dtb ./devicetree/bcm2710-rpi-3-b-plus.dtb -S -s
