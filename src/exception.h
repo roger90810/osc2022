@@ -3,6 +3,8 @@
 #include "types.h"
 #include "uart.h"
 #include "timer.h"
+#include "syscall.h"
+#include "thread.h"
 
 // Timers interrupt control registers
 #define CORE0_TIMER_IRQCNTL 0x40000040 
@@ -114,5 +116,19 @@
 #define IRQ_PEND_UART_INTERRUPT_BIT     19
 
 void enable_timer_interrupt(const uint8_t enable);
+
+struct trapframe {
+    uint64_t regs[31]; // general register from x0 ~ x30
+    uint64_t sp_el0;
+    uint64_t elr_el1;
+    uint64_t spsr_el1;
+};
+
+int getpid ();
+uint64_t uart_read (char buf[], uint64_t size);
+uint64_t uart_write (const char buf[], uint64_t size);
+// int exec (struct trap_frame *trap_frame, char* name, char **argv);
+void exit();
+void kill (int pid);
 
 #endif

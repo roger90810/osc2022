@@ -68,6 +68,7 @@ void timer_irq_handler()
 
     // freq <<= 1;
     // asm volatile("msr cntp_tval_el0, %0" :: "r"(freq));
+    thread_schedule();
 }
 
 void uart_irq_handler()
@@ -96,7 +97,7 @@ void uart_irq_handler()
     *(uint32_t*)IRQ_ENABLE_IRQS_1 = (1 << IRQ_AUX_INTERRUPT_BIT);
 }
 
-void irq_handler()
+void irq_entry()
 {
     volatile uint32_t irq_pending_1 = *(uint32_t *)IRQ_IRQ_PENDING_1;
     volatile uint32_t core0_irq_source = *(uint32_t *)CORE0_IRQ_SOURCE;
@@ -108,3 +109,99 @@ void irq_handler()
         timer_irq_handler();
     }
 }
+
+void sync_entry(unsigned long esr, unsigned long elr, struct trapframe *trapframe)
+{
+    int ec = (esr >> 26) & 0b111111;
+    int iss = esr & 0x1FFFFFF;
+    if (ec == 0b010101) {  // system call
+        uint64_t syscall_num = trapframe->regs[8];
+        syscall_handler(syscall_num, trapframe);
+    }
+    // } else {
+    //     uart_puts("Exception return address: ");
+    //     uart_putx(elr);
+    //     uart_puts("\nException class (EC): ");
+    //     uart_putx(ec);
+    //     uart_puts("\nInstruction specific syndrome (ISS): ");
+    //     uart_putx(iss);
+    //     uart_puts("\n");
+    // }
+}
+
+void syscall_handler(uint64_t syscall_num, struct trapframe *trapframe)
+{
+    uint64_t ret;
+    switch (syscall_num) {
+        case SYSCALL_getpid:
+            ret = getpid();
+            trapframe->regs[0] = ret;
+            break;
+        case SYSCALL_UART_READ:
+            ret = uart_read((char *)trapframe->regs[0], trapframe->regs[1]);
+            trapframe->regs[0] = ret;
+            break;
+        case SYSCALL_UART_WRITE:
+            ret = uart_write((char *)trapframe->regs[0], trapframe->regs[1]);
+            trapframe->regs[0] = ret;
+            break;
+        // case SYSCALL_EXEC:
+        //     ret = exec(trapframe, (char *)trapframe->regs[0],
+        //                    (char **)trapframe->regs[1]);
+        //     trapframe->regs[0] = ret;
+        //     break;
+        case SYSCALL_FORK:
+            thread_fork(trapframe);
+            break;
+        case SYSCALL_EXIT:
+            exit();
+            break;
+    }
+}
+
+int getpid()
+{
+    return thread_getpid();
+}
+
+uint64_t uart_read(char buf[], uint64_t size)
+{
+    for (uint64_t i = 0; i < size; i++)
+        buf[i] = uart_getc();
+    return size;
+}
+
+uint64_t uart_write(const char buf[], uint64_t size)
+{
+    for (uint64_t i = 0; i < size; i++)
+        uart_putc(buf[i]);
+    return size;
+}
+
+// int exec(struct trap_fram *trap_frame, char* name, char **argv)
+// {
+//     cpio_header_t *header = (cpio_header_t *)CPIO_BASE;
+//     thread_t *curr_thread = get_current_thread();
+//     void (*prog)();
+
+//     prog = cpio_load(header, name);
+
+//     curr_thread->code_addr = (unsigned long)prog;
+
+//     trap_frame->sp_el0  = (unsigned long)(curr_thread + THREAD_STACK_SIZE);
+//     trap_frame->elr_el1 = (unsigned long)prog;
+
+//     return 0;
+// }
+
+void exit()
+{
+    thread_exit();
+    return;
+}
+
+// void kill(int pid)
+// {
+//     thread_kill(pid);
+//     return;
+// }
