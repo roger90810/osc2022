@@ -10,6 +10,7 @@
 #define SYSCALL_FORK            (4)
 #define SYSCALL_EXIT            (5)
 #define SYSCALL_MBOX_CALL       (6)
+#define SYSCALL_KILL            (7)
 
 
 extern uint64_t syscall_getpid();

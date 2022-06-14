@@ -60,4 +60,5 @@ void thread_exec(void (*func)());
 void thread_test();
 int thread_fork(struct trapframe* trapframe);
 void fork_test();
+void thread_kill(int pid);
 #endif

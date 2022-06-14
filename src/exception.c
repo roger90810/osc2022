@@ -144,6 +144,9 @@ void syscall_handler(uint64_t syscall_num, struct trapframe *trapframe)
             ret = mbox_call(trapframe->regs[1], (unsigned char)trapframe->regs[0]);
             trapframe->regs[0] = ret;
             break;
+        case SYSCALL_KILL:
+            kill(trapframe->regs[0]);
+            break;
     }
 }
 
@@ -183,11 +186,11 @@ void exit()
     return;
 }
 
-// void kill(int pid)
-// {
-//     thread_kill(pid);
-//     return;
-// }
+void kill(int pid)
+{
+    thread_kill(pid);
+    return;
+}
 
 void sync_entry(unsigned long esr, unsigned long elr, struct trapframe *trapframe)
 {

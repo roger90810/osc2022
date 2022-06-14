@@ -138,6 +138,37 @@ void thread_exit()
     return;
 }
 
+void thread_kill(int pid)
+{
+    struct thread *curr_thread;
+    asm volatile ("msr DAIFSet, 0xf");
+    // Find pid thread
+    curr_thread = (struct thread *)idle_queue->next;
+    while (curr_thread != idle_queue) {
+        if (curr_thread->pid == pid) {
+            uart_puts("Thread pid : ");
+            uart_putx(pid);
+            uart_puts(" killed\n");
+            curr_thread->status = THREAD_EXIT;
+            break;
+        }
+        curr_thread = (struct thread *)curr_thread->list.next;
+    }
+
+    curr_thread = (struct thread *)wait_queue->next;
+    while (curr_thread != wait_queue) {
+        if (curr_thread->pid == pid) {
+            uart_puts("Thread pid : ");
+            uart_putx(pid);
+            uart_puts(" killed\n");
+            curr_thread->status = THREAD_EXIT;
+            break;
+        }
+        curr_thread = (struct thread *)curr_thread->list.next;
+    }
+    asm volatile ("msr DAIFClr, 0xf");
+    return;
+}
 
 void thread_timer_task()
 {
