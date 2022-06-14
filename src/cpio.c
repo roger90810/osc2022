@@ -56,6 +56,31 @@ void cpio_traverse(const char *file_name, void (*cpio_callback)(const char*, con
     }
 }
 
+void *cpio_load(const char *file_name)
+{
+    cpio_newc_header_t *header = (cpio_newc_header_t *)CPIO_BASE;
+    uint64_t file_size;
+    uint64_t name_size;
+    char *cpio_file_name;
+    char *next_header_start = (char *)header;
+    char *base_addr;
+    while (cpio_header_parse(header, &cpio_file_name, &file_size, &name_size) == 0) {
+        file_size = ALIGN(file_size, 4);
+        next_header_start += ALIGN((sizeof(cpio_newc_header_t) + name_size), 4);
+        if (strcmp(cpio_file_name, file_name) == 0) {
+            base_addr = kmalloc(file_size);
+            for (int i = 0; i < file_size; i++) {
+                base_addr[i] = next_header_start[i];
+            }
+            return (void *)base_addr;
+        }
+        next_header_start += file_size;
+        header = (cpio_newc_header_t *)next_header_start;
+    }
+    return NULL;
+}
+
+
 void cpio_callback_ls(const char *cpio_file_name, const char *content, const char *file_name, const uint64_t file_size)
 {
     uart_puts(cpio_file_name);

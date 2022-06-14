@@ -4,6 +4,7 @@
 #include "string.h"
 #include "uart.h"
 #include "stdlib.h"
+#include "object_alloc.h"
 // #define CPIO_BASE         ((volatile unsigned int*)(0x20000000))
 extern uint32_t CPIO_BASE;
 
@@ -28,4 +29,5 @@ void cpio_traverse(const char *file_name, void (*cpio_callback)(const char*, con
 void cpio_callback_ls(const char *cpio_file_name, const char *content, const char *file_name, const uint64_t file_size);
 void cpio_callback_cat(const char *cpio_file_name, const char *content, const char *file_name, const uint64_t file_size);
 void cpio_callback_exec(const char *cpio_file_name, const char *content, const char *file_name, const uint64_t file_size);
+void *cpio_load(const char *file_name);
 #endif
