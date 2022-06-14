@@ -51,7 +51,8 @@ void timer_irq_handler()
     uint64_t curr_time = time();
     if (timer_list) {
         // still has other tasks
-        set_timeout(timer_list->expired_time - curr_time);
+        // set_timeout(timer_list->expired_time - curr_time);
+        set_timeout_by_ticks(timer_list->expired_time - curr_time);
     } else {
         // no other tasks, disable timer interrupt
         enable_timer_interrupt(0);
@@ -110,30 +111,13 @@ void irq_entry()
     }
 }
 
-void sync_entry(unsigned long esr, unsigned long elr, struct trapframe *trapframe)
-{
-    int ec = (esr >> 26) & 0b111111;
-    int iss = esr & 0x1FFFFFF;
-    if (ec == 0b010101) {  // system call
-        uint64_t syscall_num = trapframe->regs[8];
-        syscall_handler(syscall_num, trapframe);
-    }
-    // } else {
-    //     uart_puts("Exception return address: ");
-    //     uart_putx(elr);
-    //     uart_puts("\nException class (EC): ");
-    //     uart_putx(ec);
-    //     uart_puts("\nInstruction specific syndrome (ISS): ");
-    //     uart_putx(iss);
-    //     uart_puts("\n");
-    // }
-}
 
 void syscall_handler(uint64_t syscall_num, struct trapframe *trapframe)
 {
     uint64_t ret;
+    asm volatile ("msr DAIFClr, 0xf");
     switch (syscall_num) {
-        case SYSCALL_getpid:
+        case SYSCALL_GETPID:
             ret = getpid();
             trapframe->regs[0] = ret;
             break;
@@ -145,16 +129,20 @@ void syscall_handler(uint64_t syscall_num, struct trapframe *trapframe)
             ret = uart_write((char *)trapframe->regs[0], trapframe->regs[1]);
             trapframe->regs[0] = ret;
             break;
-        // case SYSCALL_EXEC:
-        //     ret = exec(trapframe, (char *)trapframe->regs[0],
-        //                    (char **)trapframe->regs[1]);
-        //     trapframe->regs[0] = ret;
-        //     break;
+        case SYSCALL_EXEC:
+            ret = exec(trapframe, (char *)trapframe->regs[0],
+                           (char **)trapframe->regs[1]);
+            trapframe->regs[0] = ret;
+            break;
         case SYSCALL_FORK:
             thread_fork(trapframe);
             break;
         case SYSCALL_EXIT:
             exit();
+            break;
+        case SYSCALL_MBOX_CALL:
+            ret = mbox_call(trapframe->regs[1], (unsigned char)trapframe->regs[0]);
+            trapframe->regs[0] = ret;
             break;
     }
 }
@@ -178,21 +166,16 @@ uint64_t uart_write(const char buf[], uint64_t size)
     return size;
 }
 
-// int exec(struct trap_fram *trap_frame, char* name, char **argv)
-// {
-//     cpio_header_t *header = (cpio_header_t *)CPIO_BASE;
-//     thread_t *curr_thread = get_current_thread();
-//     void (*prog)();
-
-//     prog = cpio_load(header, name);
-
-//     curr_thread->code_addr = (unsigned long)prog;
-
-//     trap_frame->sp_el0  = (unsigned long)(curr_thread + THREAD_STACK_SIZE);
-//     trap_frame->elr_el1 = (unsigned long)prog;
-
-//     return 0;
-// }
+int exec(struct trapframe *trapframe, char* name, char **argv)
+{
+    struct thread *curr_thread = get_current_thread();
+    void (*func)();
+    func = cpio_load(name);
+    curr_thread->code_addr = (unsigned long)func;
+    trapframe->sp_el0  = (unsigned long)(curr_thread + THREAD_STACK_SIZE);
+    trapframe->elr_el1 = (unsigned long)func;
+    return 0;
+}
 
 void exit()
 {
@@ -205,3 +188,22 @@ void exit()
 //     thread_kill(pid);
 //     return;
 // }
+
+void sync_entry(unsigned long esr, unsigned long elr, struct trapframe *trapframe)
+{
+    int ec = (esr >> 26) & 0b111111;
+    int iss = esr & 0x1FFFFFF;
+    if (ec == 0b010101) {  // system call
+        uint64_t syscall_num = trapframe->regs[8];
+        syscall_handler(syscall_num, trapframe);
+    }
+    // } else {
+    //     uart_puts("Exception return address: ");
+    //     uart_putx(elr);
+    //     uart_puts("\nException class (EC): ");
+    //     uart_putx(ec);
+    //     uart_puts("\nInstruction specific syndrome (ISS): ");
+    //     uart_putx(iss);
+    //     uart_puts("\n");
+    // }
+}

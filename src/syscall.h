@@ -3,12 +3,13 @@
 
 #include "types.h"
 
-#define SYSCALL_getpid         (0)
+#define SYSCALL_GETPID          (0)
 #define SYSCALL_UART_READ       (1)
 #define SYSCALL_UART_WRITE      (2)
 #define SYSCALL_EXEC            (3)
 #define SYSCALL_FORK            (4)
 #define SYSCALL_EXIT            (5)
+#define SYSCALL_MBOX_CALL       (6)
 
 
 extern uint64_t syscall_getpid();

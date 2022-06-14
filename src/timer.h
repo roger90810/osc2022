@@ -15,6 +15,7 @@ typedef struct timer_t
 } timer_t;
 extern timer_t* timer_list;
 void set_timeout(const uint32_t sec);
+void set_timeout_by_ticks(const uint32_t ticks);
 void add_timer(void(*callback)(), const char* msg, const uint32_t after);
 uint64_t time();
 

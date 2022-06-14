@@ -5,6 +5,7 @@
 #include "timer.h"
 #include "syscall.h"
 #include "thread.h"
+#include "mbox.h"
 
 // Timers interrupt control registers
 #define CORE0_TIMER_IRQCNTL 0x40000040 

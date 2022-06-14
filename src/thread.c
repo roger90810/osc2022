@@ -143,7 +143,8 @@ void thread_timer_task()
 {
     unsigned long cntfrq_el0;
     asm volatile("mrs %0,  cntfrq_el0" : "=r"(cntfrq_el0) : );
-    add_timer(thread_timer_task, NULL, 1);
+    // add_timer(thread_timer_task, NULL, 1);
+    add_timer(thread_timer_task, NULL, cntfrq_el0 >> 5);
     return;
 }
 
@@ -175,7 +176,8 @@ void thread_exec(void (*func)())
     tmp |= 1;
     asm volatile("msr cntkctl_el1, %0" : : "r"(tmp));
     
-    add_timer(thread_timer_task, NULL, 1);
+    // add_timer(thread_timer_task, NULL, 1);
+    add_timer(thread_timer_task, NULL, 5);
 
     // Get current EL
     asm volatile ("mrs %0, CurrentEL" : "=r" (current_el));

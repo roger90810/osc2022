@@ -16,7 +16,8 @@ void add_timer(void(*callback)(), const char* msg, const uint32_t after)
 
     if (!timer_list) {
         timer_list = new_timer;
-        set_timeout(after);
+        // set_timeout(after);
+        set_timeout_by_ticks(after);
         enable_timer_interrupt(1);
     } else {
         // find the position
@@ -32,7 +33,7 @@ void add_timer(void(*callback)(), const char* msg, const uint32_t after)
             // insert to head
             new_timer->next = cur;
             timer_list = new_timer;
-            set_timeout(after);
+            set_timeout_by_ticks(after);
         } else {
             new_timer->next = cur;
             prev->next = new_timer;
@@ -46,6 +47,16 @@ void set_timeout(const uint32_t sec)
     asm volatile("mrs %0, cntfrq_el0" : "=r"(freq));
     freq *= sec;
     asm volatile("msr cntp_tval_el0, %0" :: "r"(freq));
+}
+
+void set_timeout_by_ticks(const uint32_t ticks)
+{
+    unsigned long cntpct_el0;
+    unsigned long cntp_cval_el0;
+    asm volatile("mrs %0,  cntpct_el0" : "=r"(cntpct_el0) : );
+    cntp_cval_el0 = cntpct_el0 + ticks;
+    // Set next expire time
+    asm volatile ("msr cntp_cval_el0, %0" :: "r"(cntp_cval_el0));
 }
 
 uint64_t time()
