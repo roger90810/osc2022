@@ -144,7 +144,7 @@ void thread_kill(int pid)
     asm volatile ("msr DAIFSet, 0xf");
     struct list_head *cur;
     // Find pid thread
-
+    cur = idle_queue->next;
     while (cur != idle_queue) {
         curr_thread = (struct thread *)cur;
         if (curr_thread->pid == pid) {
