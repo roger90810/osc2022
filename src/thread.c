@@ -42,7 +42,7 @@ void thread_init()
     kernel_thread->status = THREAD_WAIT;
     kernel_thread->pid    = 0;
     
-    list_add_tail(&kernel_thread->list, wait_queue);
+    list_add(&kernel_thread->list, wait_queue);
     asm volatile("msr tpidr_el1, %0" : : "r"(kernel_thread));
 
     pid_used[0] = true;
@@ -74,7 +74,7 @@ struct thread *thread_create(void (*func)())
         new_thread->context.fp = (unsigned long)new_thread->user_stack + THREAD_STACK_SIZE;
         new_thread->context.sp = (unsigned long)new_thread->user_stack + THREAD_STACK_SIZE;
 
-        list_add_tail(&new_thread->list, idle_queue);
+        list_add(&new_thread->list, idle_queue);
 
         // log_puts("[thread_create] new_thread: 0x", THREAD_LOG_ON);
         // log_puth((unsigned long)new_thread, THREAD_LOG_ON);
@@ -93,18 +93,19 @@ struct thread *get_current_thread()
 
 void thread_schedule()
 {
-    if (idle_queue->next == idle_queue)
-        return;
     struct thread *curr_thread = NULL;
     struct thread *next_thread = NULL;
     curr_thread = get_current_thread();
     while (1) {
+        if (idle_queue->next == idle_queue) {
+            return;
+        }
         /* has next thread */
         next_thread = (struct thread *)idle_queue->next;
         list_del(idle_queue->next);
-        if (next_thread->status == THREAD_IDLE)
+        if (next_thread->status == THREAD_IDLE) {
             break;
-
+        }
         if (next_thread->status == THREAD_EXIT) {
             pid_used[next_thread->pid] = false;
             kfree((void *)next_thread->kernel_stack);
@@ -115,17 +116,16 @@ void thread_schedule()
 
     if (next_thread != NULL) {
         // uart_puts("[thread_schedule] curr_thread: ");
-        // uart_putx((unsigned long)curr_thread);
+        // uart_putx((unsigned long)curr_thread->pid);
         // uart_puts(", next_thread: ");
-        // uart_putx((unsigned long)next_thread);
+        // uart_putx((unsigned long)next_thread->pid);
         // uart_puts("\n");
         
         if (curr_thread->pid != 0) {
-            list_add_tail(&curr_thread->list, idle_queue);
+            list_add(&curr_thread->list, idle_queue);
         }
         switch_to(&curr_thread->context, &next_thread->context, next_thread);
     }
-
     return;
 }
 
@@ -142,21 +142,11 @@ void thread_kill(int pid)
 {
     struct thread *curr_thread;
     asm volatile ("msr DAIFSet, 0xf");
+    struct list_head *cur;
     // Find pid thread
-    curr_thread = (struct thread *)idle_queue->next;
-    while (curr_thread != idle_queue) {
-        if (curr_thread->pid == pid) {
-            uart_puts("Thread pid : ");
-            uart_putx(pid);
-            uart_puts(" killed\n");
-            curr_thread->status = THREAD_EXIT;
-            break;
-        }
-        curr_thread = (struct thread *)curr_thread->list.next;
-    }
 
-    curr_thread = (struct thread *)wait_queue->next;
-    while (curr_thread != wait_queue) {
+    while (cur != idle_queue) {
+        curr_thread = (struct thread *)cur;
         if (curr_thread->pid == pid) {
             uart_puts("Thread pid : ");
             uart_putx(pid);
@@ -164,7 +154,19 @@ void thread_kill(int pid)
             curr_thread->status = THREAD_EXIT;
             break;
         }
-        curr_thread = (struct thread *)curr_thread->list.next;
+        cur = cur->next;
+    }
+    cur = wait_queue->next;
+    while (cur != wait_queue) {
+        curr_thread = (struct thread *)cur;
+        if (curr_thread->pid == pid) {
+            uart_puts("Thread pid : ");
+            uart_putx(pid);
+            uart_puts(" killed\n");
+            curr_thread->status = THREAD_EXIT;
+            break;
+        }
+        cur = cur->next;
     }
     asm volatile ("msr DAIFClr, 0xf");
     return;
@@ -206,10 +208,7 @@ void thread_exec(void (*func)())
     asm volatile("mrs %0, cntkctl_el1" : "=r"(tmp));
     tmp |= 1;
     asm volatile("msr cntkctl_el1, %0" : : "r"(tmp));
-    
-    // add_timer(thread_timer_task, NULL, 1);
     add_timer(thread_timer_task, NULL, 5);
-
     // Get current EL
     asm volatile ("mrs %0, CurrentEL" : "=r" (current_el));
     current_el = current_el >> 2;
@@ -240,53 +239,6 @@ void thread_exec(void (*func)())
     return;
 }
 
-int thread_fork(struct trapframe* trapframe)
-{
-    struct thread *parent_thread;
-    struct thread *child_thread;
-    struct thread *curr_thread;
-    struct trapframe *child_trap_frame;
-
-    unsigned long k_offset, u_offset;
-
-    // set_interrupt(false);
-
-    parent_thread = get_current_thread();
-    child_thread  = thread_create((void *)parent_thread->code_addr);
-
-    k_offset = (unsigned long)child_thread->kernel_stack - (unsigned long)parent_thread->kernel_stack;
-    u_offset = (unsigned long)child_thread->user_stack - (unsigned long)parent_thread->user_stack;
-    child_trap_frame = (struct trapframe *)((unsigned long)trapframe + k_offset);
-
-    store_context(&child_thread->context);
-    curr_thread = get_current_thread();
-
-    if (curr_thread->pid == parent_thread->pid) {
-        trapframe->regs[0] = child_thread->pid;
-
-        for (int i = 0; i < THREAD_STACK_SIZE; i++) {
-            ((char *) child_thread->kernel_stack)[i] = ((char *) parent_thread->kernel_stack)[i];
-            ((char *) child_thread->user_stack)[i] = ((char *) parent_thread->user_stack)[i];
-        }
-
-        // for (int i = 0; i < THREAD_MAX_SIG_NUM; i++)
-        // {
-        //     child_thread->signal_handlers[i] = parent_thread->signal_handlers[i];
-        //     child_thread->signal_num[i] = parent_thread->signal_num[i];
-        // }
-
-        child_thread->context.sp += k_offset;
-        child_thread->context.fp += k_offset;
-        child_trap_frame->sp_el0 += u_offset;
-        child_trap_frame->regs[0] = 0;
-
-        return child_thread->pid;
-    }
-
-    // set_interrupt(true);
-
-    return 0;
-}
 
 // Test
 void idle_thread_func () {

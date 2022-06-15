@@ -6,6 +6,7 @@
 #include "uart.h"
 #include "mm.h"
 #include "object_alloc.h"
+#include "exception.h"
 
 #define MAX_THREAD_NR      (32)
 #define MAX_THREAD_SIG_NR  (16)
@@ -58,7 +59,6 @@ void thread_schedule();
 void thread_exit();
 void thread_exec(void (*func)());
 void thread_test();
-int thread_fork(struct trapframe* trapframe);
 void fork_test();
 void thread_kill(int pid);
 #endif
