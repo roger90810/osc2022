@@ -42,7 +42,7 @@ void thread_init()
     kernel_thread->status = THREAD_WAIT;
     kernel_thread->pid    = 0;
     
-    list_add(&kernel_thread->list, wait_queue);
+    list_add_tail(&kernel_thread->list, wait_queue);
     asm volatile("msr tpidr_el1, %0" : : "r"(kernel_thread));
 
     pid_used[0] = true;
@@ -122,7 +122,7 @@ void thread_schedule()
         // uart_puts("\n");
         
         if (curr_thread->pid != 0) {
-            list_add(&curr_thread->list, idle_queue);
+            list_add_tail(&curr_thread->list, idle_queue);
         }
         switch_to(&curr_thread->context, &next_thread->context, next_thread);
     }
