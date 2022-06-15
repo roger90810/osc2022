@@ -155,7 +155,6 @@ int fork(struct trapframe *trapframe)
 
     unsigned long k_offset, u_offset;
 
-    asm volatile ("msr DAIFSet, 0xf");
     parent_thread = get_current_thread();
     child_thread  = thread_create((void *)parent_thread->code_addr);
 
@@ -173,21 +172,13 @@ int fork(struct trapframe *trapframe)
             ((char *) child_thread->kernel_stack)[i] = ((char *) parent_thread->kernel_stack)[i];
             ((char *) child_thread->user_stack)[i] = ((char *) parent_thread->user_stack)[i];
         }
-
-        // for (int i = 0; i < THREAD_MAX_SIG_NUM; i++)
-        // {
-        //     child_thread->signal_handlers[i] = parent_thread->signal_handlers[i];
-        //     child_thread->signal_num[i] = parent_thread->signal_num[i];
-        // }
-
         child_thread->context.sp += k_offset;
         child_thread->context.fp += k_offset;
         child_trap_frame->sp_el0 += u_offset;
         child_trap_frame->regs[0] = 0;
-
+        list_add(&child_thread->list, idle_queue);
         return child_thread->pid;
     }
-    asm volatile ("msr DAIFClr, 0xf");
     return 0;
 }
 

@@ -74,7 +74,7 @@ struct thread *thread_create(void (*func)())
         new_thread->context.fp = (unsigned long)new_thread->user_stack + THREAD_STACK_SIZE;
         new_thread->context.sp = (unsigned long)new_thread->user_stack + THREAD_STACK_SIZE;
 
-        list_add(&new_thread->list, idle_queue);
+        // list_add(&new_thread->list, idle_queue);
 
         // log_puts("[thread_create] new_thread: 0x", THREAD_LOG_ON);
         // log_puth((unsigned long)new_thread, THREAD_LOG_ON);
@@ -263,9 +263,12 @@ void test_thread_func()
 
 void thread_test()
 {
-    thread_create(idle_thread_func);
+    struct thread *thread;
+    thread = thread_create(idle_thread_func);
+    list_add(&thread->list, idle_queue);
     for (int i = 0; i < 5; i++)
-        thread_create(test_thread_func);
+        thread = thread_create(idle_thread_func);
+        list_add(&thread->list, idle_queue);
     thread_schedule();
 }
 

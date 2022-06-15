@@ -45,6 +45,8 @@ struct thread {
     enum THREAD_STATUS status;
 };
 
+extern struct list_head *idle_queue;
+extern struct list_head *wait_queue;
 struct thread* thread_create(void (*func)());
 extern void switch_to(struct thread_context *curr_context,
                       struct thread_context *next_context,
