@@ -20,5 +20,6 @@ struct pool {
 
 void* kmalloc(uint64_t size);
 void kfree(void* p);
+void obj_allocator_init();
 
 #endif

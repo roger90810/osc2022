@@ -2,13 +2,12 @@
 
 struct pool obj_allocator[MAX_OBJ_ALLOCTOR_NUM];
 
-void pool_init(struct pool* pool, uint64_t size)
+void pool_init(int idx, uint64_t size)
 {
-    pool->obj_size = size;
-    pool->obj_per_page = PAGE_SIZE / size;
-    pool->page_used = 0;
-    pool->obj_used = 0;
-    INIT_LIST_HEAD(&pool->free_list);
+    obj_allocator[idx].obj_size = size;
+    obj_allocator[idx].obj_per_page = PAGE_SIZE / size;
+    obj_allocator[idx].page_used = 0;
+    INIT_LIST_HEAD(&obj_allocator[idx].free_list);
 }
 
 int obj_alloc_register(uint64_t size)
@@ -31,7 +30,7 @@ int obj_alloc_register(uint64_t size)
             return i;
         } else if (!obj_allocator[i].used) {
             obj_allocator[i].used = true;
-            pool_init(&obj_allocator[i], normalize_size);
+            pool_init(i, normalize_size);
             return i;
         }
     }
@@ -73,7 +72,7 @@ void obj_free(int token, void* addr)
 {
     int pool_num = token;
     struct pool* pool = &obj_allocator[pool_num];
-    list_add_tail((struct list_head*)addr, &pool->free_list);
+    list_add((struct list_head*)addr, &pool->free_list);
     pool->obj_used--;
 }
 
@@ -128,4 +127,18 @@ void kfree(void* p)
     }
     // uart_puts("free using buddy\n");
     free_page(addr_pfn);
+}
+
+void obj_allocator_init()
+{
+    for (int i = 0; i < MAX_OBJ_ALLOCTOR_NUM; i++) {
+        obj_allocator[i].used = 0;
+        obj_allocator[i].obj_size = 0;
+        obj_allocator[i].obj_per_page = 0;
+        obj_allocator[i].obj_used = 0;
+        obj_allocator[i].page_used = 0;
+        for (int j = 0; j < MAX_POOL_PAGES; j++)
+            obj_allocator[i].page_addr[j] = 0;
+        INIT_LIST_HEAD(&obj_allocator[i].free_list);
+    }
 }
