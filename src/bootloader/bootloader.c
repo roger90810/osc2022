@@ -6,8 +6,11 @@ int boot()
     volatile uint64_t dtb_base = 0;
     asm volatile("mov %0, x0" : "=r"(dtb_base));
     uart_init();
-    // uart_puts("Waiting for kernel image...\n");
-    
+    uart_puts("Waiting for kernel image...\n");
+
+    char c;
+    while (UART_DATA_READY()) c = (char)(*AUX_MU_IO);
+
     unsigned int kernel_size = 0;
     for (int i = 0; i < 4; i++) {
         kernel_size <<= 8;
