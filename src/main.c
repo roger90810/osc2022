@@ -22,6 +22,7 @@ int main()
     void (*ptr)(uint8_t* , uint32_t) = &initramfs_callback;
     dtb_parser(DTB_BASE, ptr);
     mm_init();
+    timer_init();
     start_shell();
     return 0;
 }

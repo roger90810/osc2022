@@ -10,7 +10,6 @@ void timer_init()
 
 void add_timer(void(*callback)(), const char* msg, const uint32_t after)
 {
-    uart_puts("Add Timer \n");
     uint64_t curr_time = time();
     timer_t* new_timer = kmalloc(sizeof(timer_t));
     uint64_t len = strlen(msg);

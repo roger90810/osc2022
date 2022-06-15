@@ -48,7 +48,6 @@ void timer_irq_handler()
 {
     timer_t *cur_timer = (timer_t *)timer_list->next;
     cur_timer->callback();
-    uart_puts("Execute Timer Task Callback\n");
     // move head to next
     list_del(timer_list->next);
     kfree(cur_timer);
@@ -156,7 +155,7 @@ int fork(struct trapframe *trapframe)
 
     unsigned long k_offset, u_offset;
 
-    // asm volatile ("msr DAIFSet, 0xf");
+    asm volatile ("msr DAIFSet, 0xf");
     parent_thread = get_current_thread();
     child_thread  = thread_create((void *)parent_thread->code_addr);
 

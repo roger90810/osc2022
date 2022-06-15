@@ -7,6 +7,7 @@
 #include "list.h"
 #include "types.h"
 #include "uart.h"
+#include "object_alloc.h"
 
 #define PAGE_BASE_ADDR     (0x100000)
 #define PAGE_SHIFT         (12)

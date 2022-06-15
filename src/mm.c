@@ -314,4 +314,5 @@ void mm_init()
     memmap_init();
     init_free_lists();
     mem_init();
+    obj_allocator_init();
 }
