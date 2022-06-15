@@ -1,43 +1,42 @@
 #include "timer.h"
 
-timer_t* timer_list;
+struct list_head *timer_list;
+
+void timer_init()
+{
+    timer_list = kmalloc(sizeof(struct list_head));
+    INIT_LIST_HEAD(timer_list);
+}
+
 void add_timer(void(*callback)(), const char* msg, const uint32_t after)
 {
+    uart_puts("Add Timer \n");
     uint64_t curr_time = time();
-    timer_t* new_timer = simple_malloc(sizeof(timer_t));
-    new_timer->msg = simple_malloc(sizeof(msg) + 1);
-    strncpy(new_timer->msg, msg, strlen(msg));
+    timer_t* new_timer = kmalloc(sizeof(timer_t));
+    uint64_t len = strlen(msg);
+    new_timer->msg = kmalloc(len + 1);
+    strncpy(new_timer->msg, msg, len);
+    new_timer->msg[len] = '\0';
     new_timer->expired_time = curr_time + after;
     new_timer->callback = callback;
-    new_timer->next = 0;
+    INIT_LIST_HEAD(&new_timer->list);
 
-    timer_t* cur = timer_list;
-    timer_t* prev = 0;
-
-    if (!timer_list) {
-        timer_list = new_timer;
+    struct list_head *cur = timer_list->next;
+    if (timer_list->next == timer_list) {
+        list_add(&new_timer->list, timer_list);
         // set_timeout(after);
         set_timeout_by_ticks(after);
         enable_timer_interrupt(1);
     } else {
         // find the position
-        while (cur) {
-            if (new_timer->expired_time < cur->expired_time) {
+        while (cur != timer_list) {
+            timer_t *cur_timer = (timer_t *)cur;
+            if (new_timer->expired_time < cur_timer->expired_time) {
                 break;
             }
-            prev = cur;
             cur = cur->next;
         }
-        
-        if (!prev) {
-            // insert to head
-            new_timer->next = cur;
-            timer_list = new_timer;
-            set_timeout_by_ticks(after);
-        } else {
-            new_timer->next = cur;
-            prev->next = new_timer;
-        }
+        list_add_tail(&new_timer->list, cur);
     }
 }
 

@@ -27,32 +27,38 @@ void enable_timer_interrupt(const uint8_t enable)
 
 void exception_entry()
 {
-    volatile uint64_t tmp;
-    asm volatile("mrs %0, spsr_el1" : "=r"(tmp)); 
-    uart_puts("The value of spsr_el1 : ");
-    uart_putx(tmp);
-    uart_puts("\n");
+    // volatile uint64_t tmp;
+    // asm volatile("mrs %0, spsr_el1" : "=r"(tmp)); 
+    // uart_puts("The value of spsr_el1 : ");
+    // uart_putx(tmp);
+    // uart_puts("\n");
 
-    asm volatile("mrs %0, elr_el1" : "=r"(tmp)); 
-    uart_puts("The value of elr_el1 : ");
-    uart_putx(tmp);
-    uart_puts("\n");
+    // asm volatile("mrs %0, elr_el1" : "=r"(tmp)); 
+    // uart_puts("The value of elr_el1 : ");
+    // uart_putx(tmp);
+    // uart_puts("\n");
 
-    asm volatile("mrs %0, esr_el1" : "=r"(tmp)); 
-    uart_puts("The value of esr_el1 : ");
-    uart_putx(tmp);
-    uart_puts("\n");
+    // asm volatile("mrs %0, esr_el1" : "=r"(tmp)); 
+    // uart_puts("The value of esr_el1 : ");
+    // uart_putx(tmp);
+    // uart_puts("\n");
 }
 
 void timer_irq_handler()
 {
-    timer_list->callback(timer_list->msg);
-    timer_list = timer_list->next;  // move head to next
+    timer_t *cur_timer = (timer_t *)timer_list->next;
+    cur_timer->callback();
+    uart_puts("Execute Timer Task Callback\n");
+    // move head to next
+    list_del(timer_list->next);
+    kfree(cur_timer);
+
     uint64_t curr_time = time();
-    if (timer_list) {
+    if (timer_list->next != timer_list) {
         // still has other tasks
+        cur_timer = (timer_t *)timer_list->next;
         // set_timeout(timer_list->expired_time - curr_time);
-        set_timeout_by_ticks(timer_list->expired_time - curr_time);
+        set_timeout_by_ticks(cur_timer->expired_time - curr_time);
     } else {
         // no other tasks, disable timer interrupt
         enable_timer_interrupt(0);
@@ -111,45 +117,6 @@ void irq_entry()
     }
 }
 
-
-void syscall_handler(uint64_t syscall_num, struct trapframe *trapframe)
-{
-    uint64_t ret;
-    asm volatile ("msr DAIFClr, 0xf");
-    switch (syscall_num) {
-        case SYSCALL_GETPID:
-            ret = getpid();
-            trapframe->regs[0] = ret;
-            break;
-        case SYSCALL_UART_READ:
-            ret = uart_read((char *)trapframe->regs[0], trapframe->regs[1]);
-            trapframe->regs[0] = ret;
-            break;
-        case SYSCALL_UART_WRITE:
-            ret = uart_write((char *)trapframe->regs[0], trapframe->regs[1]);
-            trapframe->regs[0] = ret;
-            break;
-        case SYSCALL_EXEC:
-            ret = exec(trapframe, (char *)trapframe->regs[0],
-                           (char **)trapframe->regs[1]);
-            trapframe->regs[0] = ret;
-            break;
-        case SYSCALL_FORK:
-            thread_fork(trapframe);
-            break;
-        case SYSCALL_EXIT:
-            exit();
-            break;
-        case SYSCALL_MBOX_CALL:
-            ret = mbox_call(trapframe->regs[1], (unsigned char)trapframe->regs[0]);
-            trapframe->regs[0] = ret;
-            break;
-        case SYSCALL_KILL:
-            kill(trapframe->regs[0]);
-            break;
-    }
-}
-
 int getpid()
 {
     return thread_getpid();
@@ -180,6 +147,51 @@ int exec(struct trapframe *trapframe, char* name, char **argv)
     return 0;
 }
 
+int fork(struct trapframe *trapframe)
+{
+    struct thread *parent_thread;
+    struct thread *child_thread;
+    struct thread *curr_thread;
+    struct trapframe *child_trap_frame;
+
+    unsigned long k_offset, u_offset;
+
+    // asm volatile ("msr DAIFSet, 0xf");
+    parent_thread = get_current_thread();
+    child_thread  = thread_create((void *)parent_thread->code_addr);
+
+    k_offset = (unsigned long)child_thread->kernel_stack - (unsigned long)parent_thread->kernel_stack;
+    u_offset = (unsigned long)child_thread->user_stack - (unsigned long)parent_thread->user_stack;
+    child_trap_frame = (struct trapframe *)((unsigned long)trapframe + k_offset);
+
+    store_context(&child_thread->context);
+    curr_thread = get_current_thread();
+
+    if (curr_thread->pid == parent_thread->pid) {
+        trapframe->regs[0] = child_thread->pid;
+
+        for (int i = 0; i < THREAD_STACK_SIZE; i++) {
+            ((char *) child_thread->kernel_stack)[i] = ((char *) parent_thread->kernel_stack)[i];
+            ((char *) child_thread->user_stack)[i] = ((char *) parent_thread->user_stack)[i];
+        }
+
+        // for (int i = 0; i < THREAD_MAX_SIG_NUM; i++)
+        // {
+        //     child_thread->signal_handlers[i] = parent_thread->signal_handlers[i];
+        //     child_thread->signal_num[i] = parent_thread->signal_num[i];
+        // }
+
+        child_thread->context.sp += k_offset;
+        child_thread->context.fp += k_offset;
+        child_trap_frame->sp_el0 += u_offset;
+        child_trap_frame->regs[0] = 0;
+
+        return child_thread->pid;
+    }
+    asm volatile ("msr DAIFClr, 0xf");
+    return 0;
+}
+
 void exit()
 {
     thread_exit();
@@ -190,6 +202,44 @@ void kill(int pid)
 {
     thread_kill(pid);
     return;
+}
+
+void syscall_handler(uint64_t syscall_num, struct trapframe *trapframe)
+{
+    uint64_t ret;
+    asm volatile ("msr DAIFClr, 0xf");
+    switch (syscall_num) {
+        case SYSCALL_GETPID:
+            ret = getpid();
+            trapframe->regs[0] = ret;
+            break;
+        case SYSCALL_UART_READ:
+            ret = uart_read((char *)trapframe->regs[0], trapframe->regs[1]);
+            trapframe->regs[0] = ret;
+            break;
+        case SYSCALL_UART_WRITE:
+            ret = uart_write((char *)trapframe->regs[0], trapframe->regs[1]);
+            trapframe->regs[0] = ret;
+            break;
+        case SYSCALL_EXEC:
+            ret = exec(trapframe, (char *)trapframe->regs[0],
+                           (char **)trapframe->regs[1]);
+            trapframe->regs[0] = ret;
+            break;
+        case SYSCALL_FORK:
+            fork(trapframe);
+            break;
+        case SYSCALL_EXIT:
+            exit();
+            break;
+        case SYSCALL_MBOX_CALL:
+            ret = mbox_call((unsigned int*)trapframe->regs[1], (unsigned char)trapframe->regs[0]);
+            trapframe->regs[0] = ret;
+            break;
+        case SYSCALL_KILL:
+            kill(trapframe->regs[0]);
+            break;
+    }
 }
 
 void sync_entry(unsigned long esr, unsigned long elr, struct trapframe *trapframe)
