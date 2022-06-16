@@ -9,6 +9,7 @@
 #include "uart.h"
 #include "object_alloc.h"
 
+#define KERNEL_VIRT_BASE   (0xFFFF000000000000)
 #define PAGE_BASE_ADDR     (0x100000)
 #define PAGE_SHIFT         (12)
 #define MAX_ORDER          (11)
