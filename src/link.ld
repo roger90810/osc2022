@@ -12,6 +12,16 @@ SECTIONS
         *(.bss .bss.*)
         __bss_end = .;
     }
+    . = ALIGN(0x1000);
+    pg_dir = .;
+    .data.pgd :
+    {
+        /* (PGD * 1) + (PUD * 1) + (PMD * 1) + (PTE * 512) */
+        . += (515 * (1 << 12)); 
+    }
+    . = ALIGN(0x1000);
+
+    __kernel_end = .;
     _end = .;
     __heap_start = .;
 }

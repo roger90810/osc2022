@@ -37,12 +37,15 @@
 /* Setting TCR_EL1 */
 #define PD_TABLE 0b11
 #define PD_BLOCK 0b01
-#define PD_ACCESS (1 << 10)
-#define BOOT_PGD_ATTR PD_TABLE
+#define PD_PAGE  0b11
+#define PD_ACCESS_FLAG          (1 << 10)
 
 // bit[10] : access flag, bit[4:2] : MAIR index, bit[1:0] : next level type
-#define BOOT_PUD_ATTR (PD_ACCESS | (MAIR_IDX_DEVICE_nGnRnE << 2) | PD_BLOCK)
-
-
+#define PGD0_ATTR               PD_TABLE // Lower attributes is ignored
+#define PUD0_ATTR               PD_TABLE // Lower attributes is ignored
+#define PUD1_ATTR               (PD_ACCESS_FLAG | (MAIR_IDX_DEVICE_nGnRnE << 2) | PD_BLOCK)
+#define PMD_ATTR                PD_TABLE // Lower attributes is ignored
+#define PTE_DEVICE_ATTR         (PD_ACCESS_FLAG | (MAIR_IDX_DEVICE_nGnRnE << 2) | PD_PAGE)
+#define PTE_NORMAL_ATTR         (PD_ACCESS_FLAG | (MAIR_IDX_NORMAL_NOCACHE << 2) | PD_PAGE)
 
 #endif
