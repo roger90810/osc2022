@@ -8,6 +8,7 @@
 #include "types.h"
 #include "uart.h"
 #include "object_alloc.h"
+#include "dtb.h"
 
 #define PAGE_BASE_ADDR     (0x00000000)
 #define PHYSICAL_SIZE      (0x3C000000)

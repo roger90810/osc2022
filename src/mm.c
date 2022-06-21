@@ -5,6 +5,7 @@ extern unsigned long __end;   /* declared in the linker script */
 extern unsigned long __heap_start; /* declared in the linker script */
 extern unsigned long __heap_size;  /* declared in the linker script */
 extern uint32_t CPIO_BASE;
+extern uint64_t DTB_BASE;
 static unsigned long kernel_start = (unsigned long) &__start;
 static unsigned long kernel_end   = (unsigned long) &__end;
 static unsigned long heap_top = (unsigned long) &__heap_start;
@@ -127,7 +128,6 @@ static inline void free_one_page(struct page *page, unsigned long pfn,
     unsigned long buddy_pfn;
     unsigned long combined_pfn;
     struct page *buddy;
-    bool to_tail;
 
 continue_merging:
     while (order < max_order) {
@@ -159,8 +159,6 @@ continue_merging:
 		 * We don't want to hit this code for the more frequent
 		 * low-order merging.
 		 */
-        int buddy_mt;
-
 		buddy_pfn = __find_buddy_pfn(pfn, order);
 		buddy = page + (buddy_pfn - pfn);
 
@@ -305,11 +303,11 @@ void free_page(unsigned int pfn)
 
 void memory_reserve(unsigned long start, unsigned long end)
 {
-    // uart_puts("Reserved Memory From ");
-    // uart_putx(start);
-    // uart_puts(" to ");
-    // uart_putx(end);
-    // uart_puts("\n");
+    uart_puts("Reserved Memory From ");
+    uart_putx(start);
+    uart_puts(" to ");
+    uart_putx(end);
+    uart_puts("\n");
 
     unsigned long start_pfn = start >> PAGE_SHIFT;
     unsigned long end_pfn   = (end + PAGE_SIZE - 1) >> PAGE_SHIFT;
@@ -328,7 +326,8 @@ void startup_init()
     memory_reserve(kernel_start, kernel_end);
     memory_reserve(CPIO_BASE, CPIO_BASE + 0x40000);
     memory_reserve(heap_top, heap_top + heap_size);
-    // memory_reserve();
+    unsigned int dtb_size = __builtin_bswap32(((fdt_header_t*)DTB_BASE)->totalsize);
+    memory_reserve(DTB_BASE, DTB_BASE + dtb_size); // dtb 8KB
 }
 
 void mm_init()
