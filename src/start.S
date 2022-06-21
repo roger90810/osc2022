@@ -85,7 +85,7 @@ set_pmd_loop :
     add x6, x6, #1
     add x5, x5, 0x1000
     cmp x6, x7
-    bls set_p md_loop
+    bls set_pmd_loop
 
     /* setup PTE, 512 pages, 512 entries per page */
 
