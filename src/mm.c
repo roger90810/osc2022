@@ -10,11 +10,12 @@ static unsigned long kernel_end   = (unsigned long) &__end;
 static unsigned long heap_top = (unsigned long) &__heap_start;
 static unsigned long heap_size = (unsigned long) &__heap_size;
 
-struct page mem_map[MAX_NR_PAGES];
-struct free_area free_area[MAX_ORDER];
+struct page *mem_map;
+struct free_area *free_area;
 
 static void init_free_lists()
 {
+    free_area = simple_malloc(sizeof(struct free_area) * MAX_ORDER);
     unsigned int order;
     for (order = 0; order < MAX_ORDER; order++) {
         INIT_LIST_HEAD(&free_area[order].free_list);
@@ -30,6 +31,7 @@ static void __init_single_page(struct page *page)
 
 static void memmap_init()
 {
+    mem_map = simple_malloc(sizeof(struct page) * MAX_NR_PAGES);
     unsigned long start_pfn = 0;
     unsigned long end_pfn = PHYSICAL_SIZE >> PAGE_SHIFT;
     unsigned long pfn;

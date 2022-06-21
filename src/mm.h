@@ -56,6 +56,6 @@ void mm_init();
 struct page *alloc_pages(unsigned int order);
 void free_page(unsigned int pfn);
 
-extern struct page mem_map[MAX_NR_PAGES];
-extern struct free_area free_area[MAX_ORDER];
+extern struct page *mem_map;
+extern struct free_area *free_area;
 #endif
