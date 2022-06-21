@@ -1,14 +1,17 @@
 #include "mm.h"
 
+extern unsigned long __start; /* declared in the linker script */
+extern unsigned long __end;   /* declared in the linker script */
+extern unsigned long __heap_start; /* declared in the linker script */
+extern unsigned long __heap_size;  /* declared in the linker script */
+extern uint32_t CPIO_BASE;
+static unsigned long kernel_start = (unsigned long) &__start;
+static unsigned long kernel_end   = (unsigned long) &__end;
+static unsigned long heap_top = (unsigned long) &__heap_start;
+static unsigned long heap_size = (unsigned long) &__heap_size;
 
-/*
- *  Only map a fixed, small portion of memory.
- *  0x100000 ~ 0x500000 (4MB)
- *  TODO : parse dtb to get the memory information
- */
-struct page mem_map[MAX_ORDER_NR_PAGES];
+struct page mem_map[MAX_NR_PAGES];
 struct free_area free_area[MAX_ORDER];
-
 
 static void init_free_lists()
 {
@@ -19,9 +22,8 @@ static void init_free_lists()
     }
 }
 
-static void __init_single_page(struct page *page, unsigned long pfn)
+static void __init_single_page(struct page *page)
 {
-    page->ref_count = 1;
     memset(page, 0, sizeof(struct page));
     INIT_LIST_HEAD(&page->list);
 }
@@ -29,13 +31,12 @@ static void __init_single_page(struct page *page, unsigned long pfn)
 static void memmap_init()
 {
     unsigned long start_pfn = 0;
-    unsigned long end_pfn = MAX_ORDER_NR_PAGES;
-    unsigned long hold_pfn = 0;
+    unsigned long end_pfn = PHYSICAL_SIZE >> PAGE_SHIFT;
     unsigned long pfn;
     struct page *page;
     for (pfn = start_pfn; pfn < end_pfn; pfn++) {
         page = pfn_to_page(pfn);
-        __init_single_page(page, pfn);
+        __init_single_page(page);
     }
 }
 
@@ -68,6 +69,8 @@ __find_buddy_pfn(unsigned long page_pfn, unsigned int order)
 static inline bool page_is_buddy(struct page *page, struct page *buddy,
                                 unsigned int order)
 {
+    if (buddy->flags != PAGE_BUDDY)
+        return false;
     if (buddy->order != order)
         return false;
     if (buddy->ref_count != 0)
@@ -113,32 +116,6 @@ static inline void del_page_from_free_list(struct page *page, unsigned int order
     // uart_puts("] from free_list of order ");
     // uart_putx(order);
     // uart_puts("\n");
-}
-
-/*
- * If this is not the largest possible page, check if the buddy
- * of the next-highest order is free. If it is, it's possible
- * that pages are being freed that will coalesce soon. In case,
- * that is happening, add the free page to the tail of the list
- * so it's less likely to be used soon and more likely to be merged
- * as a higher order page
- */
-static inline bool
-buddy_merge_likely(unsigned long pfn, unsigned long buddy_pfn,
-                   struct page *page, unsigned int order)
-{
-	struct page *higher_page, *higher_buddy;
-	unsigned long combined_pfn;
-
-	if (order >= MAX_ORDER - 2)
-		return false;
-
-	combined_pfn = buddy_pfn & pfn;
-	higher_page = page + (combined_pfn - pfn);
-	buddy_pfn = __find_buddy_pfn(combined_pfn, order + 1);
-	higher_buddy = higher_page + (buddy_pfn - combined_pfn);
-
-	return page_is_buddy(higher_page, higher_buddy, order + 1);
 }
 
 static inline void free_one_page(struct page *page, unsigned long pfn,
@@ -193,11 +170,7 @@ continue_merging:
     
 done_merging:
     page->order = order;
-    to_tail = buddy_merge_likely(pfn, buddy_pfn, page, order);
-	if (to_tail)
-		add_to_free_list_tail(page, order);
-	else
-		add_to_free_list(page, order);
+    add_to_free_list(page, order);
 }
 
 void free_pages_core(struct page *page, unsigned int order)
@@ -215,18 +188,37 @@ void mem_init()
 {
     int order;
     unsigned long start_pfn = 0;
-    unsigned long end_pfn = MAX_ORDER_NR_PAGES;
+    unsigned long end_pfn = 0;
+    unsigned long max_pfn = PHYSICAL_SIZE >> PAGE_SHIFT;
+    struct page *page;
 
-    while (start_pfn < end_pfn) {
+    while (start_pfn < max_pfn) {
+        while (end_pfn < max_pfn) {
+            page = pfn_to_page(end_pfn);
+            if (page->flags == PAGE_RESERVED)
+                break;
+            end_pfn++;
+        }
 
-        order = min(MAX_ORDER - 1UL, __ffs(start_pfn));
-        while (start_pfn + (1UL << order) > end_pfn)
-            order--;
-        
-        free_pages_core(pfn_to_page(start_pfn), order);
-        start_pfn += (1UL << order);
+        while (start_pfn < end_pfn) {
+            order = min(MAX_ORDER - 1UL, __ffs(start_pfn));
+            while (start_pfn + (1UL << order) > end_pfn)
+                order--;
+            free_one_page(pfn_to_page(start_pfn), start_pfn, order);
+            start_pfn += (1UL << order);
+        }
+
+        start_pfn = end_pfn;
+        while (start_pfn < max_pfn) {
+            page = pfn_to_page(start_pfn);
+            if (page->flags == PAGE_BUDDY)
+                break;
+            start_pfn++;
+        }
+        end_pfn = start_pfn;
     }
 }
+
 
 static inline struct page *get_page_from_free_area(struct free_area *area)
 {
@@ -309,9 +301,38 @@ void free_page(unsigned int pfn)
     free_one_page(page, pfn, page->order);
 }
 
+void memory_reserve(unsigned long start, unsigned long end)
+{
+    // uart_puts("Reserved Memory From ");
+    // uart_putx(start);
+    // uart_puts(" to ");
+    // uart_putx(end);
+    // uart_puts("\n");
+
+    unsigned long start_pfn = start >> PAGE_SHIFT;
+    unsigned long end_pfn   = (end + PAGE_SIZE - 1) >> PAGE_SHIFT;
+    unsigned long pfn;
+    struct page *page;
+    for (pfn = start_pfn; pfn < end_pfn; pfn++) {
+        page = pfn_to_page(pfn);
+        page->flags = PAGE_RESERVED;
+    }
+    return;
+}
+
+void startup_init()
+{   
+    memory_reserve(0x0000, 0x1000);
+    memory_reserve(kernel_start, kernel_end);
+    memory_reserve(CPIO_BASE, CPIO_BASE + 0x40000);
+    memory_reserve(heap_top, heap_top + heap_size);
+    // memory_reserve();
+}
+
 void mm_init()
 {
     memmap_init();
+    startup_init();
     init_free_lists();
     mem_init();
     obj_allocator_init();

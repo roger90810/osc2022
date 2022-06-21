@@ -1,6 +1,7 @@
 SECTIONS
 {
     . = 0x80000;
+    __start = .;
     .text : { KEEP(*(.text.boot)) *(.text .text.*) }
     .rodata : { *(.rodata .rodata.*) }
     .data : { *(.data .data.*) }
@@ -10,7 +11,7 @@ SECTIONS
         *(.bss .bss.*)
         __bss_end = .;
     }
-    _end = .;
+    __end = .;
     __heap_start = .;
 }
 __heap_size = 0x00005000;
