@@ -126,11 +126,12 @@ struct trapframe {
     uint64_t spsr_el1;
 };
 
-int getpid ();
-uint64_t uart_read (char buf[], uint64_t size);
-uint64_t uart_write (const char buf[], uint64_t size);
+int getpid();
+uint64_t uart_read(char buf[], uint64_t size);
+uint64_t uart_write(const char buf[], uint64_t size);
 // int exec (struct trap_frame *trap_frame, char* name, char **argv);
 void exit();
-void kill (int pid);
-
+void kill(int pid);
+extern void store_context(struct thread_context *context);
+extern void load_context(struct thread_context *context);
 #endif

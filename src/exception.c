@@ -141,7 +141,7 @@ int exec(struct trapframe *trapframe, char* name, char **argv)
     void (*func)();
     func = cpio_load(name);
     curr_thread->code_addr = (unsigned long)func;
-    trapframe->sp_el0  = (unsigned long)(curr_thread + THREAD_STACK_SIZE);
+    trapframe->sp_el0  = (unsigned long)(curr_thread->user_stack + THREAD_STACK_SIZE);
     trapframe->elr_el1 = (unsigned long)func;
     return 0;
 }
@@ -172,6 +172,10 @@ int fork(struct trapframe *trapframe)
             ((char *) child_thread->kernel_stack)[i] = ((char *) parent_thread->kernel_stack)[i];
             ((char *) child_thread->user_stack)[i] = ((char *) parent_thread->user_stack)[i];
         }
+        for (int i = 0; i < MAX_THREAD_SIG_NR; i++) {
+            child_thread->signal_handlers[i] = parent_thread->signal_handlers[i];
+            child_thread->signal_num[i] = parent_thread->signal_num[i];
+        }
         child_thread->context.sp += k_offset;
         child_thread->context.fp += k_offset;
         child_trap_frame->sp_el0 += u_offset;
@@ -192,6 +196,46 @@ void kill(int pid)
 {
     thread_kill(pid);
     return;
+}
+
+void signal_register(int signal, void (*handler)())
+{
+    struct thread *curr_thread;
+    curr_thread = get_current_thread();
+    curr_thread->signal_handlers[signal] = handler;
+    uart_puts("[thread_signal_register] signal: ");
+    uart_putx(signal);
+    uart_puts(", handler: 0x");
+    uart_putx(handler);
+    uart_puts("\n");
+}
+
+void signal_kill(int pid, int signal)
+{
+    struct list_head *p;
+    struct thread *thread;
+    p = idle_queue->next;
+    while (p != idle_queue) {
+        thread = (struct thread*)p;
+        if (thread->pid == pid) {
+            uart_puts("[thread_signal_kill] signal: ");
+            uart_putx(signal);
+            uart_puts(", pid: ");
+            uart_putx(pid);
+            uart_puts("\n");
+            thread->signal_num[signal]++;
+            break;
+        }
+        p = p->next;
+    }
+    return;
+}
+
+void signal_return()
+{
+    struct thread* curr_thread;
+    curr_thread = get_current_thread();
+    load_context(&curr_thread->signal_save_context);
 }
 
 void syscall_handler(uint64_t syscall_num, struct trapframe *trapframe)
@@ -228,6 +272,15 @@ void syscall_handler(uint64_t syscall_num, struct trapframe *trapframe)
             break;
         case SYSCALL_KILL:
             kill(trapframe->regs[0]);
+            break;
+        case SYSCALL_SIGREG:
+            signal_register(trapframe->regs[0], trapframe->regs[1]);
+            break;
+        case SYSCALL_SIGKILL:
+            signal_kill(trapframe->regs[0], trapframe->regs[1]);
+            break;
+        case SYSCALL_SIGRET:
+            signal_return();
             break;
     }
 }

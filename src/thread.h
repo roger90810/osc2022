@@ -43,6 +43,9 @@ struct thread {
     unsigned long kernel_stack;
     unsigned long user_stack;
     enum THREAD_STATUS status;
+    struct thread_context signal_save_context;
+    void (*signal_handlers[MAX_THREAD_SIG_NR])();
+    unsigned int signal_num[MAX_THREAD_SIG_NR];
 };
 
 extern struct list_head *idle_queue;
@@ -52,6 +55,7 @@ extern void switch_to(struct thread_context *curr_context,
                       struct thread_context *next_context,
                       struct thread *next_thread);
 extern void from_EL1_to_EL0(unsigned long func, unsigned long user_sp, unsigned long kernel_sp);
+extern void syscall_ret();
 int get_new_pid();
 int thread_getpid();
 void thread_init();
@@ -63,4 +67,6 @@ void thread_exec(void (*func)());
 void thread_test();
 void fork_test();
 void thread_kill(int pid);
+void *get_signal_handler(struct thread *thread);
+void check_signal();
 #endif
