@@ -8,11 +8,15 @@
 #include "mbox.h"
 #include "cpio.h"
 
+
+#define LOCAL_PERIPHERALS_PHYSICAL (0x40000000)
+#define LOCAL_PERIPHERALS_BASE     (KERNEL_VIRT_BASE | LOCAL_PERIPHERALS_PHYSICAL)
+
 // Timers interrupt control registers
-#define CORE0_TIMER_IRQCNTL 0x40000040 
-#define CORE1_TIMER_IRQCNTL 0x40000044 
-#define CORE2_TIMER_IRQCNTL 0x40000048 
-#define CORE3_TIMER_IRQCNTL 0x4000004C
+#define CORE0_TIMER_IRQCNTL ((volatile unsigned int*)(LOCAL_PERIPHERALS_BASE + 0x40)) 
+#define CORE1_TIMER_IRQCNTL ((volatile unsigned int*)(LOCAL_PERIPHERALS_BASE + 0x44)) 
+#define CORE2_TIMER_IRQCNTL ((volatile unsigned int*)(LOCAL_PERIPHERALS_BASE + 0x48)) 
+#define CORE3_TIMER_IRQCNTL ((volatile unsigned int*)(LOCAL_PERIPHERALS_BASE + 0x4C))
 // Where to route timer interrupt to, IRQ/FIQ
 // Setting both the IRQ and FIQ bit gives an FIQ
 #define TIMER0_IRQ 0x01
@@ -25,10 +29,10 @@
 #define TIMER3_FIQ 0x80
 
 // Mailbox interrupt control registers
-#define CORE0_MBOX_IRQCNTL 0x40000050
-#define CORE1_MBOX_IRQCNTL 0x40000054
-#define CORE2_MBOX_IRQCNTL 0x40000058
-#define CORE3_MBOX_IRQCNTL 0x4000005C
+#define CORE0_MBOX_IRQCNTL ((volatile unsigned int*)(LOCAL_PERIPHERALS_BASE +0x50))
+#define CORE1_MBOX_IRQCNTL ((volatile unsigned int*)(LOCAL_PERIPHERALS_BASE +0x54))
+#define CORE2_MBOX_IRQCNTL ((volatile unsigned int*)(LOCAL_PERIPHERALS_BASE +0x58))
+#define CORE3_MBOX_IRQCNTL ((volatile unsigned int*)(LOCAL_PERIPHERALS_BASE +0x5C))
 
 // Where to route mailbox interrupt to, IRQ/FIQ
 // Setting both the IRQ and FIQ bit gives an FIQ
@@ -42,67 +46,69 @@
 #define MBOX3_FIQ 0x80
 
 // IRQ & FIQ source registers
-#define CORE0_IRQ_SOURCE 0x40000060
-#define CORE1_IRQ_SOURCE 0x40000064
-#define CORE2_IRQ_SOURCE 0x40000068
-#define CORE3_IRQ_SOURCE 0x4000006C
-#define CORE0_FIQ_SOURCE 0x40000070
-#define CORE1_FIQ_SOURCE 0x40000074
-#define CORE2_FIQ_SOURCE 0x40000078
-#define CORE3_FIQ_SOURCE 0x4000007C
+#define CORE0_IRQ_SOURCE ((volatile unsigned int*)(LOCAL_PERIPHERALS_BASE + 0x60))
+#define CORE1_IRQ_SOURCE ((volatile unsigned int*)(LOCAL_PERIPHERALS_BASE + 0x64))
+#define CORE2_IRQ_SOURCE ((volatile unsigned int*)(LOCAL_PERIPHERALS_BASE + 0x68))
+#define CORE3_IRQ_SOURCE ((volatile unsigned int*)(LOCAL_PERIPHERALS_BASE + 0x6C))
+#define CORE0_FIQ_SOURCE ((volatile unsigned int*)(LOCAL_PERIPHERALS_BASE + 0x70))
+#define CORE1_FIQ_SOURCE ((volatile unsigned int*)(LOCAL_PERIPHERALS_BASE + 0x74))
+#define CORE2_FIQ_SOURCE ((volatile unsigned int*)(LOCAL_PERIPHERALS_BASE + 0x78))
+#define CORE3_FIQ_SOURCE ((volatile unsigned int*)(LOCAL_PERIPHERALS_BASE + 0x7C))
 
 
 // Interrupt source bits
 // IRQ and FIQ are the same
 // GPU bits can be set for one core only
-#define INT_SRC_TIMER0 0x00000001
-#define INT_SRC_TIMER1 0x00000002
-#define INT_SRC_TIMER2 0x00000004
-#define INT_SRC_TIMER3 0x00000008
-#define INT_SRC_MBOX0 0x00000010
-#define INT_SRC_MBOX1 0x00000020
-#define INT_SRC_MBOX2 0x00000040
-#define INT_SRC_MBOX3 0x00000080
-#define INT_SRC_GPU 0x00000100
-#define INT_SRC_PMU 0x00000200
+#define INT_SRC_TIMER0 (0x00000001)
+#define INT_SRC_TIMER1 (0x00000002)
+#define INT_SRC_TIMER2 (0x00000004)
+#define INT_SRC_TIMER3 (0x00000008)
+#define INT_SRC_MBOX0  (0x00000010)
+#define INT_SRC_MBOX1  (0x00000020)
+#define INT_SRC_MBOX2  (0x00000040)
+#define INT_SRC_MBOX3  (0x00000080)
+#define INT_SRC_GPU    (0x00000100)
+#define INT_SRC_PMU    (0x00000200)
 
-// Mailbox write-set registers (Write only) #define CORE0_MBOX0_SET 0x40000080
-#define CORE0_MBOX1_SET 0x40000084
-#define CORE0_MBOX2_SET 0x40000088
-#define CORE0_MBOX3_SET 0x4000008C
-#define CORE1_MBOX0_SET 0x40000090 
-#define CORE1_MBOX1_SET 0x40000094 
-#define CORE1_MBOX2_SET 0x40000098 
-#define CORE1_MBOX3_SET 0x4000009C 
-#define CORE2_MBOX0_SET 0x400000A0 
-#define CORE2_MBOX1_SET 0x400000A4 
-#define CORE2_MBOX2_SET 0x400000A8 
-#define CORE2_MBOX3_SET 0x400000AC 
-#define CORE3_MBOX0_SET 0x400000B0 
-#define CORE3_MBOX1_SET 0x400000B4 
-#define CORE3_MBOX2_SET 0x400000B8 
-#define CORE3_MBOX3_SET 0x400000BC
+// Mailbox write-set registers (Write only)
+#define CORE0_MBOX0_SET ((volatile unsigned int*)(LOCAL_PERIPHERALS_BASE + 0x80))
+#define CORE0_MBOX1_SET ((volatile unsigned int*)(LOCAL_PERIPHERALS_BASE + 0x84))
+#define CORE0_MBOX2_SET ((volatile unsigned int*)(LOCAL_PERIPHERALS_BASE + 0x88))
+#define CORE0_MBOX3_SET ((volatile unsigned int*)(LOCAL_PERIPHERALS_BASE + 0x8C))
+#define CORE1_MBOX0_SET ((volatile unsigned int*)(LOCAL_PERIPHERALS_BASE + 0x90))
+#define CORE1_MBOX1_SET ((volatile unsigned int*)(LOCAL_PERIPHERALS_BASE + 0x94))
+#define CORE1_MBOX2_SET ((volatile unsigned int*)(LOCAL_PERIPHERALS_BASE + 0x98))
+#define CORE1_MBOX3_SET ((volatile unsigned int*)(LOCAL_PERIPHERALS_BASE + 0x9C))
+#define CORE2_MBOX0_SET ((volatile unsigned int*)(LOCAL_PERIPHERALS_BASE + 0xA0))
+#define CORE2_MBOX1_SET ((volatile unsigned int*)(LOCAL_PERIPHERALS_BASE + 0xA4))
+#define CORE2_MBOX2_SET ((volatile unsigned int*)(LOCAL_PERIPHERALS_BASE + 0xA8))
+#define CORE2_MBOX3_SET ((volatile unsigned int*)(LOCAL_PERIPHERALS_BASE + 0xAC))
+#define CORE3_MBOX0_SET ((volatile unsigned int*)(LOCAL_PERIPHERALS_BASE + 0xB0))
+#define CORE3_MBOX1_SET ((volatile unsigned int*)(LOCAL_PERIPHERALS_BASE + 0xB4))
+#define CORE3_MBOX2_SET ((volatile unsigned int*)(LOCAL_PERIPHERALS_BASE + 0xB8))
+#define CORE3_MBOX3_SET ((volatile unsigned int*)(LOCAL_PERIPHERALS_BASE + 0xBC))
 
-// Mailbox write-clear registers (Read & Write) #define CORE0_MBOX0_RDCLR 0x400000C0
-#define CORE0_MBOX1_RDCLR 0x400000C4
-#define CORE0_MBOX2_RDCLR 0x400000C8
-#define CORE0_MBOX3_RDCLR 0x400000CC 
-#define CORE1_MBOX0_RDCLR 0x400000D0 
-#define CORE1_MBOX1_RDCLR 0x400000D4 
-#define CORE1_MBOX2_RDCLR 0x400000D8 
-#define CORE1_MBOX3_RDCLR 0x400000DC 
-#define CORE2_MBOX0_RDCLR 0x400000E0 
-#define CORE2_MBOX1_RDCLR 0x400000E4 
-#define CORE2_MBOX2_RDCLR 0x400000E8 
-#define CORE2_MBOX3_RDCLR 0x400000EC 
-#define CORE3_MBOX0_RDCLR 0x400000F0 
-#define CORE3_MBOX1_RDCLR 0x400000F4 
-#define CORE3_MBOX2_RDCLR 0x400000F8 
-#define CORE3_MBOX3_RDCLR 0x400000FC
+// Mailbox write-clear registers (Read & Write)
+#define CORE0_MBOX0_RDCLR ((volatile unsigned int*)(LOCAL_PERIPHERALS_BASE + 0xC0))
+#define CORE0_MBOX1_RDCLR ((volatile unsigned int*)(LOCAL_PERIPHERALS_BASE + 0xC4))
+#define CORE0_MBOX2_RDCLR ((volatile unsigned int*)(LOCAL_PERIPHERALS_BASE + 0xC8))
+#define CORE0_MBOX3_RDCLR ((volatile unsigned int*)(LOCAL_PERIPHERALS_BASE + 0xCC))
+#define CORE1_MBOX0_RDCLR ((volatile unsigned int*)(LOCAL_PERIPHERALS_BASE + 0xD0))
+#define CORE1_MBOX1_RDCLR ((volatile unsigned int*)(LOCAL_PERIPHERALS_BASE + 0xD4))
+#define CORE1_MBOX2_RDCLR ((volatile unsigned int*)(LOCAL_PERIPHERALS_BASE + 0xD8))
+#define CORE1_MBOX3_RDCLR ((volatile unsigned int*)(LOCAL_PERIPHERALS_BASE + 0xDC))
+#define CORE2_MBOX0_RDCLR ((volatile unsigned int*)(LOCAL_PERIPHERALS_BASE + 0xE0))
+#define CORE2_MBOX1_RDCLR ((volatile unsigned int*)(LOCAL_PERIPHERALS_BASE + 0xE4))
+#define CORE2_MBOX2_RDCLR ((volatile unsigned int*)(LOCAL_PERIPHERALS_BASE + 0xE8))
+#define CORE2_MBOX3_RDCLR ((volatile unsigned int*)(LOCAL_PERIPHERALS_BASE + 0xEC))
+#define CORE3_MBOX0_RDCLR ((volatile unsigned int*)(LOCAL_PERIPHERALS_BASE + 0xF0))
+#define CORE3_MBOX1_RDCLR ((volatile unsigned int*)(LOCAL_PERIPHERALS_BASE + 0xF4))
+#define CORE3_MBOX2_RDCLR ((volatile unsigned int*)(LOCAL_PERIPHERALS_BASE + 0xF8))
+#define CORE3_MBOX3_RDCLR ((volatile unsigned int*)(LOCAL_PERIPHERALS_BASE + 0xFC))
 #define CORE0_CNTPNSIRQ 1
 
-
-#define IRQ_BASE                        (0x3F00B000)
+#define IRQ_PHYSICAL                    (0x3F00B000)
+#define IRQ_BASE                        (KERNEL_VIRT_BASE | IRQ_PHYSICAL)
 #define IRQ_IRQ_BASIC_PENDING           (IRQ_BASE+0x200)
 #define IRQ_IRQ_PENDING_1               (IRQ_BASE+0x204)
 #define IRQ_IRQ_PENDING_2               (IRQ_BASE+0x208)

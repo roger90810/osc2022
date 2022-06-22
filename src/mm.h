@@ -12,6 +12,7 @@
 
 #define PAGE_BASE_ADDR     (0x00000000)
 #define PHYSICAL_SIZE      (0x3C000000)
+#define KERNEL_VIRT_BASE   (0xFFFF000000000000)
 #define PAGE_SHIFT         (12)
 #define MAX_ORDER          (11)
 #define MAX_ORDER_NR_PAGES (1 << (MAX_ORDER - 1))

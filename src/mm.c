@@ -1,13 +1,13 @@
 #include "mm.h"
 
-extern unsigned long __start; /* declared in the linker script */
-extern unsigned long __end;   /* declared in the linker script */
+extern unsigned long __kernel_start; /* declared in the linker script */
+extern unsigned long __kernel_end;   /* declared in the linker script */
 extern unsigned long __heap_start; /* declared in the linker script */
 extern unsigned long __heap_size;  /* declared in the linker script */
 extern uint32_t CPIO_BASE;
 extern uint64_t DTB_BASE;
-static unsigned long kernel_start = (unsigned long) &__start;
-static unsigned long kernel_end   = (unsigned long) &__end;
+static unsigned long kernel_start = (unsigned long) &__kernel_start;
+static unsigned long kernel_end   = (unsigned long) &__kernel_end;
 static unsigned long heap_top = (unsigned long) &__heap_start;
 static unsigned long heap_size = (unsigned long) &__heap_size;
 
