@@ -11,6 +11,9 @@
 #define SYSCALL_EXIT            (5)
 #define SYSCALL_MBOX_CALL       (6)
 #define SYSCALL_KILL            (7)
+#define SYSCALL_SIGREG          (8)
+#define SYSCALL_SIGKILL         (9)
+#define SYSCALL_SIGRET          (10)
 
 
 extern uint64_t syscall_getpid();
@@ -19,5 +22,5 @@ extern uint32_t syscall_uart_write(const char buf[], uint32_t size);
 extern int syscall_exec(void(*func)());
 extern int syscall_fork();
 extern void syscall_exit();
-
+extern void syscall_ret();
 #endif 

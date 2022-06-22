@@ -30,8 +30,6 @@ void thread_init()
     INIT_LIST_HEAD(idle_queue);
     INIT_LIST_HEAD(wait_queue);
 
-    // thread_queue_init(idle_queue);
-    // thread_queue_init(wait_queue);
 
     for (int i = 0; i < MAX_THREAD_NR; i++) {
         pid_used[i] = false;
@@ -42,6 +40,11 @@ void thread_init()
     kernel_thread->status = THREAD_WAIT;
     kernel_thread->pid    = 0;
     
+    for (int i = 0; i < MAX_THREAD_SIG_NR; i++) {
+        kernel_thread->signal_handlers[i] = NULL;
+        kernel_thread->signal_num[i] = 0;
+    }
+
     list_add_tail(&kernel_thread->list, wait_queue);
     asm volatile("msr tpidr_el1, %0" : : "r"(kernel_thread));
 
@@ -74,11 +77,10 @@ struct thread *thread_create(void (*func)())
         new_thread->context.fp = (unsigned long)new_thread->user_stack + THREAD_STACK_SIZE;
         new_thread->context.sp = (unsigned long)new_thread->user_stack + THREAD_STACK_SIZE;
 
-        // list_add(&new_thread->list, idle_queue);
-
-        // log_puts("[thread_create] new_thread: 0x", THREAD_LOG_ON);
-        // log_puth((unsigned long)new_thread, THREAD_LOG_ON);
-        // log_puts("\n", THREAD_LOG_ON);
+        for (int i = 0; i < MAX_THREAD_SIG_NR; i++) {
+            new_thread->signal_handlers[i] = NULL;
+            new_thread->signal_num[i] = 0;
+        }
     }
 
     return new_thread;
@@ -96,6 +98,9 @@ void thread_schedule()
     struct thread *curr_thread = NULL;
     struct thread *next_thread = NULL;
     curr_thread = get_current_thread();
+
+    check_signal();
+
     while (1) {
         if (idle_queue->next == idle_queue) {
             return;
@@ -184,52 +189,20 @@ void thread_timer_task()
 void thread_exec(void (*func)())
 {
     struct thread *new_thread = NULL;
-    int pid;
-    unsigned long current_el;
-    if (idle_queue == NULL)
-        thread_init();
-    pid = get_new_pid();
-
-    if (pid == -1)
-        return;
-
-    new_thread = kmalloc(sizeof(struct thread));
-    new_thread->pid          = pid;
-    new_thread->status       = THREAD_IDLE;
-    new_thread->code_addr    = (unsigned long)func;
-    new_thread->kernel_stack = (unsigned long)kmalloc(PAGE_SIZE << 2);
-    new_thread->user_stack   = (unsigned long)kmalloc(PAGE_SIZE << 2);
-
-    new_thread->context.lr = (unsigned long)func;
-    new_thread->context.fp = (unsigned long)new_thread->user_stack + THREAD_STACK_SIZE;
-    new_thread->context.sp = (unsigned long)new_thread->user_stack + THREAD_STACK_SIZE;
+    new_thread = thread_create(func);
 
     unsigned long tmp;
     asm volatile("mrs %0, cntkctl_el1" : "=r"(tmp));
     tmp |= 1;
     asm volatile("msr cntkctl_el1, %0" : : "r"(tmp));
     add_timer(thread_timer_task, NULL, 5);
-    // Get current EL
-    asm volatile ("mrs %0, CurrentEL" : "=r" (current_el));
-    current_el = current_el >> 2;
 
     // Print prompt
-    uart_puts("Current EL: 0x");
-    uart_putx(current_el);
-    uart_puts("\n");
     uart_puts("User program at: 0x");
     uart_putx((unsigned long) func);
     uart_puts("\n");
-    uart_puts("User program stack top: 0x");
-    uart_putx((unsigned long) new_thread->context.sp);
-    uart_puts("\n");
     uart_puts("-----------------Entering user program-----------------\n");
-
-    /* Enable RX interrupt */
-    // set_aux_int(false);
-    // set_uart_rx_int(false);
-    // set_uart_tx_int(false);
-    
+   
     // disable UART interrupt
     *(uint32_t*)IRQ_DISABLE_IRQS_1 = (1 << IRQ_AUX_INTERRUPT_BIT);
     *AUX_MU_IER = 0;       // disable interrupt
@@ -239,6 +212,58 @@ void thread_exec(void (*func)())
     return;
 }
 
+void default_signal_handler()
+{
+    struct thread *thread = get_current_thread();
+    thread->status = THREAD_EXIT;
+    return;
+}
+
+void *get_signal_handler(struct thread *thread)
+{
+    void *handler = NULL;
+    for (int i = 0; i < MAX_THREAD_SIG_NR; i++) {
+        if (thread->signal_num[i] > 0) {
+            if (thread->signal_handlers[i] == NULL) {
+                // Default signal handler
+                handler = default_signal_handler;
+            } else {
+                handler = thread->signal_handlers[i];
+            }
+            thread->signal_num[i] -= 1;
+            break;
+        }
+    }
+    return handler;
+}
+
+void check_signal()
+{
+    void (*handler) ();
+    void *signal_ustack;
+    struct thread *thread = get_current_thread();
+    unsigned long sp, spsr_el1;    
+    while (1) {
+        store_context(&thread->signal_save_context);
+        handler = get_signal_handler(thread);
+        if (handler == NULL) {
+            break;
+        } else {
+            if (handler == default_signal_handler) {
+                // Run in kernel mode
+                handler();
+            } else {
+                signal_ustack = kmalloc(PAGE_SIZE << 2);
+                // Run in user mode
+                asm volatile("msr     elr_el1, %0 \n\t"
+                             "msr     sp_el0,  %1 \n\t"
+                             "mov     lr, %2       \n\t"
+                             "eret" :: "r" (handler), "r"(signal_ustack + THREAD_STACK_SIZE), "r" (syscall_ret));
+            }
+        }
+    }
+    return;
+}
 
 // Test
 void idle_thread_func () {
